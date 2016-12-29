@@ -1,8 +1,8 @@
 
-import requests
 import json
+import requests
 
-def registerEMChat(username,password):
+def registerEMChat(username, password):
 	data = {}
 	data['username'] = username
 	data['password'] = password

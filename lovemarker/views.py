@@ -1,7 +1,7 @@
 #coding=utf-8
 from django.shortcuts import render
 from django.http import HttpResponse
-from models import User
+from models import User, Post, PostTag
 from Model import HttpResultResponse, ErrorMessage
 from django.shortcuts import get_object_or_404
 from django.db import connection
@@ -15,8 +15,8 @@ def index(request):
 
 # 注册
 def register(request):
-    httpResultResponse = HttpResultResponse()
-    if request.method == 'POST':
+	httpResultResponse = HttpResultResponse()
+	if request.method == 'POST':
 		username = request.POST.get('username')
 		password = request.POST.get('password')
 		gender = request.POST.get('gender')
@@ -36,24 +36,24 @@ def register(request):
 				httpResultResponse.errorMessage = ErrorMessage.REGISTER_SUCCESS
 				httpResultResponse.status = "0"
 				# 将用户数据存入数据库
-                newUser = User.objects.create(username=username, password=password, gender=gender, pushKey=pushKey, birthday=birthday, nickname=nickname)
+				newUser = User.objects.create(username=username, password=password, gender=gender, pushKey=pushKey, birthday=birthday, nickname=nickname)
 				# 注册环信账号
-                newCursor = connection.cursor()
-                newQuery = "select * from here_user where username = %s"
-                newCursor.execute(newQuery,[username])
-                newRes = newCursor.fetchall()
-                userid = newRes[0][0]
-                util.registerEMChat(userid,password)
+				newCursor = connection.cursor()
+				newQuery = "select * from here_user where username = %s"
+				newCursor.execute(newQuery,[username])
+				newRes = newCursor.fetchall()
+				userid = newRes[0][0]
+				util.registerEMChat(userid,password)
 				# 返回客户端用户数据
-                useJson = serializers.serialize("json",newUser)
-                httpResultResponse.resultData = useJson
+				useJson = serializers.serialize("json",newUser)
+				httpResultResponse.resultData = useJson
 		else:
 			httpResultResponse.errorMessage = ErrorMessage.USERNAME_OR_PASSWORD_INVALID
 			httpResultResponse.status = "8001"
 
-        json = httpResultResponse.getJsonResult()
-        return HttpResponse(json)
-    else:
+		json = httpResultResponse.getJsonResult()
+		return HttpResponse(json)
+	else:
 		httpResultResponse.errorMessage = ErrorMessage.POST_FAILED
 		httpResultResponse.status = "8001"
 		return HttpResponse(ErrorMessage.POST_FAILED)
@@ -88,9 +88,9 @@ def checkUserIsExist(request):
 	if request.method == 'POST':
 		username = request.POST.get('username')
 		if username:
-			user = User.objects.get(username = username)
+			user = User.objects.get(username=username)
 			if user:
-				httpResultResponse.status = '0'
+				httpResultResponse.status='0'
 				httpResultResponse.errorMessage = ErrorMessage.USER_IS_EXIST
 			else:
 				httpResultResponse.status = '8003'
@@ -131,8 +131,8 @@ def uploadAvatar(request):
 		return HttpResponse(httpResultResponse.getJsonResult())
     		
 def modifyUserInfo(request):
-    httpResultResponse = HttpResultResponse()
-    if request.method == 'POST':
+	httpResultResponse = HttpResultResponse()
+	if request.method == 'POST':
 		username = request.POST.get('username')
 		password = request.POST.get('password')
 		gender = request.POST.get('gender')
@@ -165,3 +165,66 @@ def modifyUserInfo(request):
 		httpResultResponse.errorMessage = ErrorMessage.POST_FAILED
 		httpResultResponse.status = '8001'
 		return HttpResponse(httpResultResponse.getJsonResult())
+
+def updateUserPostLocation(request):
+	httpResultResponse = HttpResultResponse()
+	if request.method == 'POST':
+		longitude = request.POST.get('longitude')
+		latitude = request.POST.get('latitude')
+		tag = request.POST.get('tag')
+		username = request.POST.get('username')
+		city = request.POST.get('city')
+		cityCode = request.POST.get('cityCode')
+		address = request.POST.get('address')
+		time = request.POST.get('time')
+		if longitude and latitude and username and city:
+			post = Post.objects.Create(longitude = longitude,latitude = latitude, city = city, 
+			cityCode = cityCode, address = address, username = username, time = time, tag = tag)
+			post.save()
+			httpResultResponse.errorMessage = ErrorMessage.UPDATE_POST_SUCCESS
+			httpResultResponse.status = '0'
+			httpResultResponse.resultData['longitude'] = longitude
+			httpResultResponse.resultData['latitude'] = latitude
+			httpResultResponse.resultData['tag'] = tag
+			httpResultResponse.resultData['username'] = username
+			httpResultResponse.resultData['city'] = city
+			httpResultResponse.resultData['cityCode'] = cityCode
+			httpResultResponse.resultData['address'] = address
+			httpResultResponse.resultData['time'] = time
+		else:
+			httpResultResponse.errorMessage = ErrorMessage.POST_FAILED
+			httpResultResponse.status = '8001'
+
+		return HttpResponse(httpResultResponse.getJsonResult())
+	else:
+		httpResultResponse.errorMessage = ErrorMessage.POST_FAILED
+		httpResultResponse.status = '8001'
+		return HttpResponse(httpResultResponse.getJsonResult())
+
+def getPostTag(request):
+	httpResultResponse = HttpResultResponse()
+	if request.method == 'POST':
+		postTag = PostTag.objects.all()
+		if postTag:
+			httpResultResponse.errorMessage = ErrorMessage.GET_TAG_SUCCESS
+			httpResultResponse.status = '0'
+			httpResultResponse.resultData = postTag
+		else:
+			httpResultResponse.errorMessage = ErrorMessage.GET_TAG_FAILED
+			httpResultResponse.status = '0'
+
+		return HttpResponse(httpResultResponse.getJsonResult())
+	else:
+		httpResultResponse.errorMessage = ErrorMessage.POST_FAILED
+		httpResultResponse.status = '8001'
+		return HttpResponse(httpResultResponse.getJsonResult())
+
+def getUserPost(request):
+	httpResultResponse = HttpResultResponse()
+	if request.method == 'POST':
+		username = request.POST.get('username')
+		post = Post.objects.get(username=username)
+		if post:
+			httpResultResponse.errorMessage = ErrorMessage.GET_POST_SUCCESS
+			httpResultResponse.status = '0'
+			httpResultResponse.resultData = post

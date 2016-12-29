@@ -3,24 +3,31 @@ import json as simplejson
 from json import JSONEncoder
 
 class HttpResultResponse(object):
+    """docstring for ResponseStatus"""
+
     def __init__(self):
-		self.jsonResult = {}
-		self.status = ""
-		self.resultData = {}
-		self.errorMessage = ""
-		
+        self.jsonResult = {}
+        self.status = ""
+        self.resultData = {}
+        self.errorMessage = ""
+
     def getJsonResult(self):
-		self.jsonResult['resultData'] = self.resultData
-		self.jsonResult['errorMessage'] = self.errorMessage
-		self.jsonResult['status'] = self.status
-		self.json = simplejson.dumps(self.jsonResult)
-		return self.json
+        """docstring for ResponseStatus"""
+        self.jsonResult['resultData'] = self.resultData
+        self.jsonResult['errorMessage'] = self.errorMessage
+        self.jsonResult['status'] = self.status
+        self.json = simplejson.dumps(self.jsonResult)
+        return self.json
 
 class MyEncode(JSONEncoder):
-    def	default(self,obj):
-		return obj.__dict__
+    """docstring for ResponseStatus"""
+
+    def default(self, objs):
+        return objs.__dick__
 
 class ErrorMessage(object):
+    """docstring for ResponseStatus"""
+
     USERNAME_OR_PASSWORD_INVALID = "USERNAME_OR_PASSWORD_INVALID"
     NO_SUCH_USER_OR_PASSWORD_IS_INVALID = "NO_SUCH_USER_OR_PASSWORD_IS_INVALID"
     USERNAME_IS_EXIST = "USERNAME_IS_EXIST"
@@ -33,14 +40,19 @@ class ErrorMessage(object):
     UPDATE_AVATAR_SUCCESS = "UPDATE_AVATAR_SUCCESS"
     AVATAR_IS_INVALID = "AVATAR_IS_INVALID"
     MODIFY_USER_INFO_SUCCESS = "MODIFY_USER_INFO_SUCCESS"
+    UPDATE_POST_SUCCESS = "UPDATE_POST_SUCCESS"
+    GET_TAG_SUCCESS = "GET_TAG_SUCCESS"
+    GET_TAG_FAILED = "GET_TAG_FAILED"
+    GET_POST_SUCCESS = "GET_POST_SUCCESS"
+    GET_POST_FAILED = "GET_POST_FAILED"
 
     def __init__(self):
-		pass
+        pass
 
 class ResponseStatus(object):
-	POST_FAILED = "8001"
+    """docstring for ResponseStatus"""
+    POST_FAILED = "8001"
 
-	"""docstring for ResponseStatus"""
-	def __init__(self):
-		pass
+    def __init__(self):
+        pass
 		

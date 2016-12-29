@@ -14,4 +14,40 @@ class User(models.Model):
 	birthday = models.CharField(max_length=30,blank = True)
 	simpleProfile = models.CharField(max_length=30,blank=True)
 	longProfile = models.CharField(max_length=300,blank=True)
-	created = models.DateTimeField(auto_now_add = True)		
+	created = models.DateTimeField(auto_now_add = True)
+
+class Post(models.Model):
+    longitude = models.CharField(max_length=30)
+    latitude = models.CharField(max_length=30)
+    city = models.CharField(max_length=30)
+    cityCode = models.CharField(max_length=30, blank=True, default="null")
+    address = models.CharField(max_length=30, blank=True, default="null")
+    username = models.CharField(max_length=30, blank=True, default="null")
+    time = models.CharField(max_length=30, blank=True, default="null")
+    like = models.IntegerField(default=0, null=True)
+    tag = models.CharField(max_length=200, blank=True)
+    created = models.DateTimeField(auto_now_add = True)
+	
+class PostTag(models.Model):
+    tag = models.CharField(max_length=100)
+    created = models.DateTimeField(auto_now_add = True)
+
+class Report(models.Model):
+	content = models.CharField(max_length=100)
+	postid = models.IntegerField()
+	reporter = models.CharField(max_length=100)
+	time = models.CharField(max_length=100)
+	created = models.DateTimeField(auto_now_add = True)
+
+class ReportIssue(models.Model):
+	content = models.CharField(max_length=100)
+	reporter = models.CharField(max_length=100)
+	time = models.CharField(max_length=100)
+	created = models.DateTimeField(auto_now_add = True)
+
+class TestModel(models.Model):
+	girl = models.CharField(max_length=30)
+	boy = models.CharField(max_length=30)
+	mom = models.CharField(max_length=30)
+	ball = models.CharField(max_length=30)
+	created = models.DateTimeField(auto_now_add = True)
