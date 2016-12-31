@@ -101,17 +101,40 @@ class ZhihuClient(object):
     def crawl_activities(self):
         """爬取用户动态入口函数"""
         limit = 20
-        after_id = '0'
+        start = '0'
 
         while limit == 20:
-            response = self.get_more_activities(limit, after_id)
+            response = self.get_more_activities(limit, start)
             json_response = json.loads(response)
             limit = json_response['msg'][0]
             soup = BeautifulSoup(json_response['msg'][1], 'html.parser')
             activities = soup.find_all('div', class_='zm-profile-section-item zm-item clearfix')
             start = activities[-1]['data-time'] if len(json_response) > 0 else 0
-            
-
+            for activity in activities:
+                if activity.attrs['data-type-detail'] == 'member_voteup_answer':
+                    #赞同了回答
+                    print '赞同了回答'
+                    continue
+                if activity.attrs['data-type-detail'] == 'member_follow_question':
+                    #关注了问题
+                    print '关注了问题'
+                    continue
+                if activity.attrs['data-type-detail'] == 'member_follow_column':
+                    #关注了专栏
+                    print '关注了专栏'
+                    continue
+                if activity.attrs['data-type-detail'] == 'member_voteup_article':
+                    #赞同了文章
+                    print '赞同了文章'
+                    continue
+                if activity.attrs['data-type-detail'] == 'member_create_article':
+                    #发布了文章
+                    print '发布了文章'
+                    continue
+                if activity.attrs['data-type-detail'] == 'member_answer_question':
+                    #回答了问题
+                    print '回答了问题'
+                    continue
 
     def get_more_activities(self, limit, start):
         '''
