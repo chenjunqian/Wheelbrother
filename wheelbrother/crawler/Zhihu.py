@@ -3,12 +3,17 @@
 import re
 import time
 import os.path
+from bs4 import BeautifulSoup
 from PIL import Image
+import json
 
+ZHIHU_URL = 'https://www.zhihu.com'
+VCZH_URL = ZHIHU_URL + '/people/excited-vczh'
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 '+
-                  '(X11; Linux x86_64) AppleWebKit/537.36 '+
-                  '(KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36',
+                  '(Linux; Android 6.0; Nexus 5 Build/MRA58N)'+
+                  ' AppleWebKit/537.36 (KHTML, like Gecko)'+
+                  ' Chrome/57.0.2950.4 Mobile Safari/537.36',
     'Host': "www.zhihu.com",
     'Origin': "http://www.zhihu.com",
     'Pragma': "no-cache",
@@ -16,8 +21,10 @@ HEADERS = {
     'X-Requested-With': "XMLHttpRequest"
 }
 
-class Login(object):
-    '''登录知乎'''
+
+class ZhihuClient(object):
+    '''知乎爬虫接口'''
+
     def __init__(self, session):
         self.session = session
 
@@ -86,3 +93,40 @@ class Login(object):
         # 这里的_xsrf 返回的是一个list
         _xsrf = re.findall(pattern, html)
         return _xsrf[0]
+
+
+
+    #####爬取用户动态#######
+
+    def crawl_activities(self):
+        """爬取用户动态入口函数"""
+        limit = 20
+        after_id = '0'
+
+        while limit == 20:
+            response = self.get_more_activities(limit, after_id)
+            json_response = json.loads(response)
+            limit = json_response['msg'][0]
+            soup = BeautifulSoup(json_response['msg'][1], 'html.parser')
+            activities = soup.find_all('div', class_='zm-profile-section-item zm-item clearfix')
+            start = activities[-1]['data-time'] if len(json_response) > 0 else 0
+            
+
+
+    def get_more_activities(self, limit, start):
+        '''
+            获取更多的用户动态
+        '''
+        api_url = VCZH_URL + '/activities'
+        query_data = {
+            'limit':limit,
+            'start':start,
+        }
+
+        response = self.session.post(
+            api_url,
+            params=query_data,
+            headers=HEADERS,
+        )
+
+        return response.text
