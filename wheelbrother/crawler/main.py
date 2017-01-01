@@ -23,6 +23,9 @@ from getpass import getpass
 #         zhihu_client.crawl_activities()
 
 def run():
+    '''
+    使用django的 mange.py shell来执行爬虫，因为会用到django的model来使用数据库
+    '''
     try:
         input = raw_input
     except:

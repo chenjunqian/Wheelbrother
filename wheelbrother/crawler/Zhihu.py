@@ -118,6 +118,7 @@ class ZhihuClient(object):
                 if activity.attrs['data-type-detail'] == 'member_voteup_answer':
                     #赞同了回答
                     print '赞同了回答'
+                    self.get_voteup_answer_content(activity)
                     continue
                 if activity.attrs['data-type-detail'] == 'member_follow_question':
                     #关注了问题
@@ -158,11 +159,19 @@ class ZhihuClient(object):
 
         return response.text
 
-    def get_voteup_answer_content(self):
+    def get_voteup_answer_content(self, activity):
         '''
             解析赞同回答的内容
         '''
-        pass
+        voteupAnswer = VoteupAnswer()
+
+        author_link = activity.find_all('a', class_='zm-item-link-avatar avatar-link')
+        if len(author_link) == 0:
+            user_link = ''
+        else:
+            user_link = author_link[0]['href']
+
+        voteupAnswer.user_link = user_link
 
     def get_voteup_comment(self):
         '''
