@@ -2,10 +2,14 @@
 """crawl zhi hu website """
 import re
 import time
-import os.path
+import json
+import os
 from bs4 import BeautifulSoup
 from PIL import Image
-import json
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mysite.settings")
+from wheelbrother.models import VoteupAnswer
+
+
 
 ZHIHU_URL = 'https://www.zhihu.com'
 VCZH_URL = ZHIHU_URL + '/people/excited-vczh'
@@ -153,3 +157,15 @@ class ZhihuClient(object):
         )
 
         return response.text
+
+    def get_voteup_answer_content(self):
+        '''
+            解析赞同回答的内容
+        '''
+        pass
+
+    def get_voteup_comment(self):
+        '''
+            解析赞同回答的评论
+        '''
+        pass
