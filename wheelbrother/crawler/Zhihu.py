@@ -165,13 +165,29 @@ class ZhihuClient(object):
         '''
         voteupAnswer = VoteupAnswer()
 
-        author_link = activity.find_all('a', class_='zm-item-link-avatar avatar-link')
-        if len(author_link) == 0:
+        author_link_top = activity.find_all('span', class_='summary-wrapper')
+
+        try:
+            author_link = author_link_top[0].find('a', class_='author-link')
+            user_link = author_link.get('href')
+            username = author_link.get_text()
+        except:
+            '''
+            可能会造成的异常为Nonetype, 和IndexError
+            '''
             user_link = ''
-        else:
-            user_link = author_link[0]['href']
+            username = 'anonymous'
+
+        answer_div = activity.find_all('div', class_='zm-item-answer ')
+        answer_id = answer_div[0].get('data-atoken')
+
+        print 'user_link : '+str(user_link)
+        print username
+        print 'answer_id : '+str(answer_id)
 
         voteupAnswer.user_link = user_link
+        voteupAnswer.username = username
+        voteupAnswer.answer_id = answer_id
 
     def get_voteup_comment(self):
         '''
