@@ -182,25 +182,17 @@ class ZhihuClient(object):
         answer_div = activity.find_all('div', class_='zm-item-answer ')
         answer_id = answer_div[0].get('data-atoken')
         answer_data_time = answer_div[0].get('data-created')
+        answer_comment_id = answer_div[0].get('data-aid')
         answer_content = answer_div[0].find('textarea', class_='content').string
         answer_vote_count = answer_div[0].find('a', class_='meta-item'+
                                                ' votenum-mobile zm-item-vote-count'+
                                                ' js-openVoteDialog').find('span').string
-
+        
         #问题的信息
         question_link_a = activity.find_all('a', class_='question_link')
         question_link = question_link_a[0]['href']
         pattern = r'(?<=question/).*?(?=/answer)'
         question_id = re.findall(pattern, question_link)[0]
-
-        print 'user_link : '+str(user_link)
-        print username
-        print 'answer_id : '+str(answer_id)
-        print answer_content
-        print 'answer_data_time : '+str(answer_data_time)
-        print 'answer_vote_count : '+str(answer_vote_count)
-        print 'question_link : '+str(question_link)
-        print 'quetion_id : '+str(question_id)
 
         voteupAnswer.user_link = ZHIHU_URL.join(user_link)
         voteupAnswer.username = username
@@ -208,6 +200,16 @@ class ZhihuClient(object):
         voteupAnswer.answer_content = answer_content
         voteupAnswer.question_id = question_id
         voteupAnswer.answer_vote_count = answer_vote_count
+
+        print 'user_link : '+str(user_link)
+        print username
+        print 'answer_id : '+str(answer_id)
+        print answer_content
+        print 'answer_data_time : '+str(answer_data_time)
+        print 'answer_vote_count : '+str(answer_vote_count)
+        print 'answer_comment_id : '+str(answer_comment_id)
+        print 'question_link : '+str(question_link)
+        print 'quetion_id : '+str(question_id)
 
     def get_voteup_comment(self):
         '''

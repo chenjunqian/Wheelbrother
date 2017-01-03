@@ -15,3 +15,4 @@ class VoteupAnswer(models.Model):
     answer_data_time = models.CharField(max_length=30)
     answer_content = models.CharField(max_length=1000)
     answer_vote_count = models.CharField(max_length=30)
+    answer_comment_id = models.CharField(max_length=30)
