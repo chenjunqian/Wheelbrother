@@ -187,7 +187,7 @@ class ZhihuClient(object):
         answer_vote_count = answer_div[0].find('a', class_='meta-item'+
                                                ' votenum-mobile zm-item-vote-count'+
                                                ' js-openVoteDialog').find('span').string
-        
+
         #问题的信息
         question_link_a = activity.find_all('a', class_='question_link')
         question_link = question_link_a[0]['href']
