@@ -10,7 +10,7 @@ class VoteupAnswer(models.Model):
     '''
     user_link = models.CharField(max_length=30)
     username = models.CharField(max_length=30)
-    quetion_id = models.CharField(max_length=30)
+    question_id = models.CharField(max_length=30)
     answer_id = models.CharField(max_length=30)
     answer_data_time = models.CharField(max_length=30)
     answer_content = models.CharField(max_length=1000)
