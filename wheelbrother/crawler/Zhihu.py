@@ -6,13 +6,14 @@ import json
 import os
 from bs4 import BeautifulSoup
 from PIL import Image
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mysite.settings")
+from wheelbrother.crawler.ThreadPoolUtils import MyThreadPool
+# os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mysite.settings")
 from wheelbrother.models import VoteupAnswer
-
 
 
 ZHIHU_URL = 'https://www.zhihu.com'
 VCZH_URL = ZHIHU_URL + '/people/excited-vczh'
+
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 '+
                   '(Linux; Android 6.0; Nexus 5 Build/MRA58N)'+
@@ -31,6 +32,7 @@ class ZhihuClient(object):
 
     def __init__(self, session):
         self.session = session
+        self.threadpool = MyThreadPool(20)
 
     def login(self, account, password):
         """登录知乎"""
@@ -114,32 +116,31 @@ class ZhihuClient(object):
             soup = BeautifulSoup(json_response['msg'][1], 'html.parser')
             activities = soup.find_all('div', class_='zm-profile-section-item zm-item clearfix')
             start = activities[-1]['data-time'] if len(json_response) > 0 else 0
-            for activity in activities:
-                if activity.attrs['data-type-detail'] == 'member_voteup_answer':
-                    #赞同了回答
-                    print '赞同了回答'
-                    self.get_voteup_answer_content(activity)
-                    continue
-                if activity.attrs['data-type-detail'] == 'member_follow_question':
-                    #关注了问题
-                    print '关注了问题'
-                    continue
-                if activity.attrs['data-type-detail'] == 'member_follow_column':
-                    #关注了专栏
-                    print '关注了专栏'
-                    continue
-                if activity.attrs['data-type-detail'] == 'member_voteup_article':
-                    #赞同了文章
-                    print '赞同了文章'
-                    continue
-                if activity.attrs['data-type-detail'] == 'member_create_article':
-                    #发布了文章
-                    print '发布了文章'
-                    continue
-                if activity.attrs['data-type-detail'] == 'member_answer_question':
-                    #回答了问题
-                    print '回答了问题'
-                    continue
+            #使用线程池爬取用户动态
+            self.threadpool.makeThreadRequest(self.parse_activitis, activities)
+
+
+    def parse_activitis(self, activity):
+        '''根据不同的标签来判断用户动态的类型'''
+        if activity.attrs['data-type-detail'] == 'member_voteup_answer':
+            #赞同了回答
+            print '赞同了回答'
+            self.get_voteup_answer_content(activity)
+        if activity.attrs['data-type-detail'] == 'member_follow_question':
+            #关注了问题
+            print '关注了问题'
+        if activity.attrs['data-type-detail'] == 'member_follow_column':
+            #关注了专栏
+            print '关注了专栏'
+        if activity.attrs['data-type-detail'] == 'member_voteup_article':
+            #赞同了文章
+            print '赞同了文章'
+        if activity.attrs['data-type-detail'] == 'member_create_article':
+            #发布了文章
+            print '发布了文章'
+        if activity.attrs['data-type-detail'] == 'member_answer_question':
+            #回答了问题
+            print '回答了问题'
 
     def get_more_activities(self, limit, start):
         '''
@@ -173,7 +174,7 @@ class ZhihuClient(object):
             username = author_link.get_text()
         except:
             '''
-            可能会造成的异常为Nonetype, 和IndexError
+            可能会造成的异常为Nonetype, 和IndexError，还不知道为什么会出现有的答案的html结构会不一样
             '''
             user_link = ''
             username = 'anonymous'
@@ -200,6 +201,7 @@ class ZhihuClient(object):
         voteupAnswer.answer_content = answer_content
         voteupAnswer.question_id = question_id
         voteupAnswer.answer_vote_count = answer_vote_count
+        voteupAnswer.answer_comment_id = answer_comment_id
 
         print 'user_link : '+str(user_link)
         print username
@@ -211,8 +213,13 @@ class ZhihuClient(object):
         print 'question_link : '+str(question_link)
         print 'quetion_id : '+str(question_id)
 
-    def get_voteup_comment(self):
+    def get_voteup_comment(self, answer_id):
         '''
             解析赞同回答的评论
         '''
-        pass
+        #评论获取url
+        COMMENT_URL = '/r/answers/%d/comments'%(answer_id)
+        #获取更多评论url
+        MORE_COMMENT_URL = '/r/answers/answer id/comments?page=page number'
+        #获取评论回复列表 
+        REPLY_COMMENT_LIST_URL = 'https://www.zhihu.com/r/answers/answer id/comments/comment id/conversations'

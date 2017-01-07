@@ -16,3 +16,16 @@ class VoteupAnswer(models.Model):
     answer_content = models.CharField(max_length=1000)
     answer_vote_count = models.CharField(max_length=30)
     answer_comment_id = models.CharField(max_length=30)
+
+class VoteupComment(models.Model):
+    '''
+        赞同答案的评论
+    '''
+    user_link = models.CharField(max_length=30)
+    username = models.CharField(max_length=30)
+    comment_id = models.CharField(max_length=30)
+    comment_content = models.CharField(max_length=200)
+    created_time = models.CharField(max_length=30)
+    like_count = models.CharField(max_length=30)
+    dislikes_count = models.CharField(max_length=30)
+    in_reply_to_commentId = models.CharField(max_length=30)
