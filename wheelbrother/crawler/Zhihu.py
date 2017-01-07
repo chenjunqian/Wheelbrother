@@ -19,6 +19,7 @@ HEADERS = {
                   '(Linux; Android 6.0; Nexus 5 Build/MRA58N)'+
                   ' AppleWebKit/537.36 (KHTML, like Gecko)'+
                   ' Chrome/57.0.2950.4 Mobile Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
     'Host': "www.zhihu.com",
     'Origin': "http://www.zhihu.com",
     'Pragma': "no-cache",
@@ -203,23 +204,35 @@ class ZhihuClient(object):
         voteupAnswer.answer_vote_count = answer_vote_count
         voteupAnswer.answer_comment_id = answer_comment_id
 
-        print 'user_link : '+str(user_link)
-        print username
-        print 'answer_id : '+str(answer_id)
-        print answer_content
-        print 'answer_data_time : '+str(answer_data_time)
-        print 'answer_vote_count : '+str(answer_vote_count)
-        print 'answer_comment_id : '+str(answer_comment_id)
-        print 'question_link : '+str(question_link)
-        print 'quetion_id : '+str(question_id)
+        # print 'user_link : '+str(user_link)
+        # print username
+        # print 'answer_id : '+str(answer_id)
+        # print answer_content
+        # print 'answer_data_time : '+str(answer_data_time)
+        # print 'answer_vote_count : '+str(answer_vote_count)
+        # print 'answer_comment_id : '+str(answer_comment_id)
+        # print 'question_link : '+str(question_link)
+        # print 'quetion_id : '+str(question_id)
+        self.get_voteup_comment(answer_comment_id)
 
     def get_voteup_comment(self, answer_id):
         '''
-            解析赞同回答的评论
+            获取赞同回答的评论
         '''
         #评论获取url
-        COMMENT_URL = '/r/answers/%d/comments'%(answer_id)
+        COMMENT_URL = ZHIHU_URL + '/r/answers/'+answer_id+'/comments'
         #获取更多评论url
         MORE_COMMENT_URL = '/r/answers/answer id/comments?page=page number'
-        #获取评论回复列表 
-        REPLY_COMMENT_LIST_URL = 'https://www.zhihu.com/r/answers/answer id/comments/comment id/conversations'
+        #获取评论回复列表
+        REPLY_COMMENT_LIST_URL = '/r/answers/answer id/comments/comment id/conversations'
+
+        comments = self.session.get(COMMENT_URL, headers=HEADERS)
+        comments_json_result = json.loads(comments.text)
+        for comment in comments_json_result['data']:
+            print comment['content']
+
+    def parse_comment_result(self, comment):
+        '''
+            解析赞同回答的评论
+        '''
+        pass

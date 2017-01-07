@@ -28,4 +28,4 @@ class VoteupComment(models.Model):
     created_time = models.CharField(max_length=30)
     like_count = models.CharField(max_length=30)
     dislikes_count = models.CharField(max_length=30)
-    in_reply_to_commentId = models.CharField(max_length=30)
+    in_reply_to_comment_id = models.CharField(max_length=30)
