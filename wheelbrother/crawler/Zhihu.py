@@ -4,7 +4,6 @@ import re
 import time
 import json
 import os
-import time
 from bs4 import BeautifulSoup
 from PIL import Image
 from wheelbrother.crawler.ThreadPoolUtils import MyThreadPool
