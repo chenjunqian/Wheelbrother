@@ -4,11 +4,12 @@ import re
 import time
 import json
 import os
+import time
 from bs4 import BeautifulSoup
 from PIL import Image
 from wheelbrother.crawler.ThreadPoolUtils import MyThreadPool
 # os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mysite.settings")
-from wheelbrother.models import VoteupAnswer
+from wheelbrother.models import VoteupAnswer, VoteupComment
 
 
 ZHIHU_URL = 'https://www.zhihu.com'
@@ -33,7 +34,7 @@ class ZhihuClient(object):
 
     def __init__(self, session):
         self.session = session
-        self.threadpool = MyThreadPool(20)
+        self.threadpool = MyThreadPool(1)
 
     def login(self, account, password):
         """登录知乎"""
@@ -112,6 +113,7 @@ class ZhihuClient(object):
 
         while limit == 20:
             response = self.get_more_activities(limit, start)
+            print response
             json_response = json.loads(response)
             limit = json_response['msg'][0]
             soup = BeautifulSoup(json_response['msg'][1], 'html.parser')
@@ -119,7 +121,25 @@ class ZhihuClient(object):
             start = activities[-1]['data-time'] if len(json_response) > 0 else 0
             #使用线程池爬取用户动态
             self.threadpool.makeThreadRequest(self.parse_activitis, activities)
+            time.sleep(10)
 
+    def get_more_activities(self, limit, start):
+        '''
+            获取更多的用户动态
+        '''
+        api_url = VCZH_URL + '/activities'
+        query_data = {
+            'limit':limit,
+            'start':start,
+        }
+
+        response = self.session.post(
+            api_url,
+            params=query_data,
+            headers=HEADERS,
+        )
+
+        return response.text
 
     def parse_activitis(self, activity):
         '''根据不同的标签来判断用户动态的类型'''
@@ -142,24 +162,6 @@ class ZhihuClient(object):
         if activity.attrs['data-type-detail'] == 'member_answer_question':
             #回答了问题
             print '回答了问题'
-
-    def get_more_activities(self, limit, start):
-        '''
-            获取更多的用户动态
-        '''
-        api_url = VCZH_URL + '/activities'
-        query_data = {
-            'limit':limit,
-            'start':start,
-        }
-
-        response = self.session.post(
-            api_url,
-            params=query_data,
-            headers=HEADERS,
-        )
-
-        return response.text
 
     def get_voteup_answer_content(self, activity):
         '''
@@ -219,20 +221,41 @@ class ZhihuClient(object):
         '''
             获取赞同回答的评论
         '''
-        #评论获取url
-        COMMENT_URL = ZHIHU_URL + '/r/answers/'+answer_id+'/comments'
-        #获取更多评论url
-        MORE_COMMENT_URL = '/r/answers/answer id/comments?page=page number'
-        #获取评论回复列表
-        REPLY_COMMENT_LIST_URL = '/r/answers/answer id/comments/comment id/conversations'
+        current_page = 1
+        #获取评论url
+        MORE_COMMENT_URL = ZHIHU_URL + '/r/answers/'+answer_id+'/comments?page='+current_page
 
-        comments = self.session.get(COMMENT_URL, headers=HEADERS)
-        comments_json_result = json.loads(comments.text)
-        for comment in comments_json_result['data']:
-            print comment['content']
+        while True:
+            try:
+                comments = self.session.get(MORE_COMMENT_URL, headers=HEADERS)
+                comments_json_result = json.loads(comments.text)
+                current_page = comments_json_result['paging']['currentPage']
+                # print current_page
+                self.threadpool.makeThreadRequest(self.parse_comment_result,
+                                                  comments_json_result['data'])
+            except ValueError:
+                break
+
 
     def parse_comment_result(self, comment):
         '''
             解析赞同回答的评论
         '''
-        pass
+        # print comment['content']
+        # print comment['author']['url']#有匿名的情况
+        # print comment['author']['name']
+        # print comment['id']
+        # print comment['createdTime']
+        # print comment['inReplyToCommentId']
+        # print comment['likesCount']
+        # print comment['dislikesCount']
+
+        voteupComment = VoteupComment()
+        voteupComment.user_link = comment['author']['url']
+        voteupComment.username = comment['author']['name']
+        voteupComment.comment_id = comment['id']
+        voteupComment.comment_content = comment['content']
+        voteupComment.created_time = comment['createdTime']
+        voteupComment.like_count = comment['likesCount']
+        voteupComment.dislikes_count = comment['dislikesCount']
+        voteupComment.in_reply_to_comment_id = comment['inReplyToCommentId']
