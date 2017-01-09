@@ -6,8 +6,6 @@ import json
 import os
 from bs4 import BeautifulSoup
 from PIL import Image
-from wheelbrother.crawler.ThreadPoolUtils import MyThreadPool
-# os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mysite.settings")
 from wheelbrother.models import VoteupAnswer, VoteupComment
 
 
@@ -33,7 +31,6 @@ class ZhihuClient(object):
 
     def __init__(self, session):
         self.session = session
-        self.threadpool = MyThreadPool(1)
 
     def login(self, account, password):
         """登录知乎"""
@@ -118,8 +115,10 @@ class ZhihuClient(object):
             activities = soup.find_all('div', class_='zm-profile-section-item zm-item clearfix')
             start = activities[-1]['data-time'] if len(json_response) > 0 else 0
             #使用线程池爬取用户动态
-            self.threadpool.makeThreadRequest(self.parse_activitis, activities)
-            time.sleep(10)
+            for activity in activities:
+                self.parse_activitis(activity)
+
+            time.sleep(20)
 
     def get_more_activities(self, limit, start):
         '''
@@ -135,6 +134,7 @@ class ZhihuClient(object):
             api_url,
             params=query_data,
             headers=HEADERS,
+            verify=False
         )
 
         return response.text
@@ -143,30 +143,30 @@ class ZhihuClient(object):
         '''根据不同的标签来判断用户动态的类型'''
         if activity.attrs['data-type-detail'] == 'member_voteup_answer':
             #赞同了回答
-            print '赞同了回答'
+            print '赞同了回答 \n'
             self.get_voteup_answer_content(activity)
         if activity.attrs['data-type-detail'] == 'member_follow_question':
             #关注了问题
-            print '关注了问题'
+            print '关注了问题 \n'
         if activity.attrs['data-type-detail'] == 'member_follow_column':
             #关注了专栏
-            print '关注了专栏'
+            print '关注了专栏 \n'
         if activity.attrs['data-type-detail'] == 'member_voteup_article':
             #赞同了文章
-            print '赞同了文章'
+            print '赞同了文章 \n'
         if activity.attrs['data-type-detail'] == 'member_create_article':
             #发布了文章
-            print '发布了文章'
+            print '发布了文章 \n'
         if activity.attrs['data-type-detail'] == 'member_answer_question':
             #回答了问题
-            print '回答了问题'
+            print '回答了问题 \n'
 
     def get_voteup_answer_content(self, activity):
         '''
             解析赞同回答的内容
         '''
         voteupAnswer = VoteupAnswer()
-
+        print '开始获取赞同答案信息 '
         #回答者的用户信息
         author_link_top = activity.find_all('span', class_='summary-wrapper')
         try:
@@ -196,8 +196,12 @@ class ZhihuClient(object):
         pattern = r'(?<=question/).*?(?=/answer)'
         question_id = re.findall(pattern, question_link)[0]
 
-        if VoteupAnswer.objects.get(answer_id=answer_id):
-            return
+        try:
+            check_model = VoteupAnswer.objects.get(answer_id=answer_id)
+            if check_model:
+                return
+        except:
+            pass
 
         voteupAnswer.user_link = ZHIHU_URL.join(user_link)
         voteupAnswer.username = username
@@ -207,15 +211,16 @@ class ZhihuClient(object):
         voteupAnswer.answer_vote_count = answer_vote_count
         voteupAnswer.answer_comment_id = answer_comment_id
 
-        # print 'user_link : '+str(user_link)
-        # print username
-        # print 'answer_id : '+str(answer_id)
-        # print answer_content
-        # print 'answer_data_time : '+str(answer_data_time)
-        # print 'answer_vote_count : '+str(answer_vote_count)
-        # print 'answer_comment_id : '+str(answer_comment_id)
-        # print 'question_link : '+str(question_link)
-        # print 'quetion_id : '+str(question_id)
+        print 'user_link : '+str(user_link)
+        print ''.join(username).encode('utf-8').strip()
+        print 'answer_id : '+str(answer_id)
+        print ''.join(answer_content).encode('utf-8').strip()
+        print 'answer_data_time : '+str(answer_data_time)
+        print 'answer_vote_count : '+str(answer_vote_count)
+        print 'answer_comment_id : '+str(answer_comment_id)
+        print 'question_link : '+str(question_link)
+        print 'quetion_id : '+str(question_id)
+
         self.get_voteup_comment(answer_comment_id)
 
     def get_voteup_comment(self, answer_id):
@@ -223,18 +228,32 @@ class ZhihuClient(object):
             获取赞同回答的评论
         '''
         current_page = 1
+        total_page = 1
         #获取评论url
-        MORE_COMMENT_URL = ZHIHU_URL + '/r/answers/'+answer_id+'/comments?page='+current_page
+        MORE_COMMENT_URL = ZHIHU_URL + '/r/answers/'+answer_id+'/comments?page='
 
-        while True:
+        print '开始获取评论信息 '
+
+        comments = self.session.get(MORE_COMMENT_URL+str(current_page), headers=HEADERS)
+        comments_json_result = json.loads(comments.text)
+        total_count = comments_json_result['paging']['totalCount']
+        per_page = comments_json_result['paging']['perPage']
+        total_page = (total_count/per_page) + 1
+
+        while current_page <= total_page:
             try:
-                comments = self.session.get(MORE_COMMENT_URL, headers=HEADERS)
+                comments = self.session.get(MORE_COMMENT_URL+str(current_page), headers=HEADERS)
                 comments_json_result = json.loads(comments.text)
-                current_page = comments_json_result['paging']['currentPage']
-                # print current_page
-                self.threadpool.makeThreadRequest(self.parse_comment_result,
-                                                  comments_json_result['data'])
-            except ValueError:
+                print 'current page number : '+str(current_page)
+                if len(comments_json_result['data']) < 1:
+                    break
+
+                for comment in comments_json_result['data']:
+                    self.parse_comment_result(comment)
+
+                current_page = current_page + 1
+                time.sleep(10)
+            except:
                 break
 
 
@@ -242,18 +261,24 @@ class ZhihuClient(object):
         '''
             解析赞同回答的评论
         '''
-        # print comment['content']
-        # print comment['author']['url']#有匿名的情况
-        # print comment['author']['name']
-        # print comment['id']
-        # print comment['createdTime']
-        # print comment['inReplyToCommentId']
-        # print comment['likesCount']
-        # print comment['dislikesCount']
+        print comment['content']
+        print 'comment id: '+str(comment['id'])
+        print 'comment createdTime: '+str(comment['createdTime'])
+        print 'comment inReplyToCommentId: '+str(comment['inReplyToCommentId'])
+        print 'comment likesCount: '+str(comment['likesCount'])
+        print 'comment dislikesCount: '+str(comment['dislikesCount'])
 
         voteupComment = VoteupComment()
-        voteupComment.user_link = comment['author']['url']
-        voteupComment.username = comment['author']['name']
+        try:
+            #有匿名的情况
+            voteupComment.user_link = comment['author']['url']
+            voteupComment.username = comment['author']['name']
+            print 'comment user url: '+comment['author']['url']
+            print comment['author']['name']
+        except:
+            voteupComment.user_link = ''
+            voteupComment.username = 'anonymous'
+
         voteupComment.comment_id = comment['id']
         voteupComment.comment_content = comment['content']
         voteupComment.created_time = comment['createdTime']
