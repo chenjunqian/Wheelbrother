@@ -112,7 +112,6 @@ class ZhihuClient(object):
 
         while limit == 20:
             response = self.get_more_activities(limit, start)
-            print response
             json_response = json.loads(response)
             limit = json_response['msg'][0]
             soup = BeautifulSoup(json_response['msg'][1], 'html.parser')
@@ -196,6 +195,9 @@ class ZhihuClient(object):
         question_link = question_link_a[0]['href']
         pattern = r'(?<=question/).*?(?=/answer)'
         question_id = re.findall(pattern, question_link)[0]
+
+        if VoteupAnswer.objects.get(answer_id=answer_id):
+            return
 
         voteupAnswer.user_link = ZHIHU_URL.join(user_link)
         voteupAnswer.username = username
