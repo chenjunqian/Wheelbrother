@@ -6,7 +6,7 @@ import json
 import os
 from bs4 import BeautifulSoup
 from PIL import Image
-from wheelbrother.models import VoteupAnswer, VoteupComment
+from wheelbrother.models import VoteupAnswer, VoteupComment, FollowQuestion
 
 
 ZHIHU_URL = 'https://www.zhihu.com'
@@ -144,10 +144,11 @@ class ZhihuClient(object):
         if activity.attrs['data-type-detail'] == 'member_voteup_answer':
             #赞同了回答
             print '赞同了回答 \n'
-            self.get_voteup_answer_content(activity)
+            # self.get_voteup_answer_content(activity)
         if activity.attrs['data-type-detail'] == 'member_follow_question':
             #关注了问题
             print '关注了问题 \n'
+            # self.get_follow_question(activity)
         if activity.attrs['data-type-detail'] == 'member_follow_column':
             #关注了专栏
             print '关注了专栏 \n'
@@ -160,6 +161,7 @@ class ZhihuClient(object):
         if activity.attrs['data-type-detail'] == 'member_answer_question':
             #回答了问题
             print '回答了问题 \n'
+            self.get_member_answer_question(activity)
 
     def get_voteup_answer_content(self, activity):
         '''
@@ -221,16 +223,16 @@ class ZhihuClient(object):
         print 'question_link : '+str(question_link)
         print 'quetion_id : '+str(question_id)
 
-        self.get_voteup_comment(answer_comment_id)
+        self.get_comment(answer_comment_id)
 
-    def get_voteup_comment(self, answer_id):
+    def get_comment(self, answer_comment_id):
         '''
             获取赞同回答的评论
         '''
         current_page = 1
         total_page = 1
         #获取评论url
-        MORE_COMMENT_URL = ZHIHU_URL + '/r/answers/'+answer_id+'/comments?page='
+        MORE_COMMENT_URL = ZHIHU_URL + '/r/answers/'+answer_comment_id+'/comments?page='
 
         print '开始获取评论信息 '
 
@@ -261,13 +263,6 @@ class ZhihuClient(object):
         '''
             解析赞同回答的评论
         '''
-        print comment['content']
-        print 'comment id: '+str(comment['id'])
-        print 'comment createdTime: '+str(comment['createdTime'])
-        print 'comment inReplyToCommentId: '+str(comment['inReplyToCommentId'])
-        print 'comment likesCount: '+str(comment['likesCount'])
-        print 'comment dislikesCount: '+str(comment['dislikesCount'])
-
         voteupComment = VoteupComment()
         try:
             #有匿名的情况
@@ -285,3 +280,50 @@ class ZhihuClient(object):
         voteupComment.like_count = comment['likesCount']
         voteupComment.dislikes_count = comment['dislikesCount']
         voteupComment.in_reply_to_comment_id = comment['inReplyToCommentId']
+
+        print comment['content']
+        print 'comment id: '+str(comment['id'])
+        print 'comment createdTime: '+str(comment['createdTime'])
+        print 'comment inReplyToCommentId: '+str(comment['inReplyToCommentId'])
+        print 'comment likesCount: '+str(comment['likesCount'])
+        print 'comment dislikesCount: '+str(comment['dislikesCount'])
+
+    def get_follow_question(self, activity):
+        '''
+            解析关注问题的信息
+        '''
+        question_link = activity.find('a', class_='question_link').get('href')
+        question_id = re.findall(r"(?<=/question/).*", question_link)[0]
+        question_title = activity.find('a', class_='question_link').string
+
+        followQuestion = FollowQuestion()
+        followQuestion.question_id = question_id
+        followQuestion.question_link = question_link
+        followQuestion.question_title = question_title
+
+        print 'question_link : '+question_link
+        print 'question_id : '+str(question_id)
+        print 'question_title : '+question_title
+
+
+    def get_member_answer_question(self, activity):
+        '''
+            解析回答问题的信息
+        '''
+        question_link = activity.find('a', class_='question_link').get('href')
+        question_id = re.findall(r'(?<=question/).*?(?=/answer)', question_link)[0]
+        question_title = activity.find('a', class_='question_link').string
+        answer_content = activity.find('textarea', class_='content').string
+        answer_id = activity.find('div', class_='zm-item-answer ').get('data-atoken')
+        answer_comment_id = activity.find('div', class_='zm-item-answer ').get('data-aid')
+        created_time = activity.find('div', class_='zm-item-answer ').get('data-created')
+
+        print 'question_id : ' + str(question_id)
+        print 'question_link : ' + question_link
+        print 'answer_id : ' + str(answer_id)
+        print 'answer_comment_id : '+str(answer_comment_id)
+        print 'created_time : '+str(created_time)
+        print question_title
+        print answer_content
+
+        self.get_comment(answer_comment_id)
