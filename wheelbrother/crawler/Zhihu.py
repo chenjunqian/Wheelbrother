@@ -6,7 +6,7 @@ import json
 import os
 from bs4 import BeautifulSoup
 from PIL import Image
-from wheelbrother.models import VoteupAnswer, VoteupComment, FollowQuestion
+from wheelbrother.models import VoteupAnswer, VoteupComment, FollowQuestion, AnswerQuestion
 
 
 ZHIHU_URL = 'https://www.zhihu.com'
@@ -143,25 +143,30 @@ class ZhihuClient(object):
         '''根据不同的标签来判断用户动态的类型'''
         if activity.attrs['data-type-detail'] == 'member_voteup_answer':
             #赞同了回答
-            print '赞同了回答 \n'
-            # self.get_voteup_answer_content(activity)
+            print '\n赞同了回答 \n'
+            self.get_voteup_answer_content(activity)
+
         if activity.attrs['data-type-detail'] == 'member_follow_question':
             #关注了问题
-            print '关注了问题 \n'
-            # self.get_follow_question(activity)
-        if activity.attrs['data-type-detail'] == 'member_follow_column':
-            #关注了专栏
-            print '关注了专栏 \n'
-        if activity.attrs['data-type-detail'] == 'member_voteup_article':
-            #赞同了文章
-            print '赞同了文章 \n'
-        if activity.attrs['data-type-detail'] == 'member_create_article':
-            #发布了文章
-            print '发布了文章 \n'
+            print '\n 关注了问题 \n'
+            self.get_follow_question(activity)
+
         if activity.attrs['data-type-detail'] == 'member_answer_question':
             #回答了问题
-            print '回答了问题 \n'
+            print '\n回答了问题 \n'
             self.get_member_answer_question(activity)
+
+        if activity.attrs['data-type-detail'] == 'member_follow_column':
+            #关注了专栏
+            print '\n关注了专栏 \n'
+
+        if activity.attrs['data-type-detail'] == 'member_voteup_article':
+            #赞同了文章
+            print '\n赞同了文章 \n'
+
+        if activity.attrs['data-type-detail'] == 'member_create_article':
+            #发布了文章
+            print '\n发布了文章 \n'
 
     def get_voteup_answer_content(self, activity):
         '''
@@ -199,8 +204,10 @@ class ZhihuClient(object):
         question_id = re.findall(pattern, question_link)[0]
 
         try:
+            #判断是否在数据库中已经存在
             check_model = VoteupAnswer.objects.get(answer_id=answer_id)
             if check_model:
+                print '已经在数据库中'
                 return
         except:
             pass
@@ -317,6 +324,14 @@ class ZhihuClient(object):
         answer_id = activity.find('div', class_='zm-item-answer ').get('data-atoken')
         answer_comment_id = activity.find('div', class_='zm-item-answer ').get('data-aid')
         created_time = activity.find('div', class_='zm-item-answer ').get('data-created')
+
+        answerQuestion = AnswerQuestion()
+        answerQuestion.question_id = question_id
+        answerQuestion.question_title = question_title
+        answerQuestion.answer_content = answer_content
+        answerQuestion.answer_id = answer_id
+        answerQuestion.created_time = created_time
+        answerQuestion.answer_comment_id = answer_comment_id
 
         print 'question_id : ' + str(question_id)
         print 'question_link : ' + question_link
