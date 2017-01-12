@@ -144,17 +144,17 @@ class ZhihuClient(object):
         if activity.attrs['data-type-detail'] == 'member_voteup_answer':
             #赞同了回答
             print '\n赞同了回答 \n'
-            self.get_voteup_answer_content(activity)
+            # self.get_voteup_answer_content(activity)
 
         if activity.attrs['data-type-detail'] == 'member_follow_question':
             #关注了问题
             print '\n 关注了问题 \n'
-            self.get_follow_question(activity)
+            # self.get_follow_question(activity)
 
         if activity.attrs['data-type-detail'] == 'member_answer_question':
             #回答了问题
             print '\n回答了问题 \n'
-            self.get_member_answer_question(activity)
+            # self.get_member_answer_question(activity)
 
         if activity.attrs['data-type-detail'] == 'member_follow_column':
             #关注了专栏
@@ -163,6 +163,7 @@ class ZhihuClient(object):
         if activity.attrs['data-type-detail'] == 'member_voteup_article':
             #赞同了文章
             print '\n赞同了文章 \n'
+            self.get_member_voteup_article(activity)
 
         if activity.attrs['data-type-detail'] == 'member_create_article':
             #发布了文章
@@ -342,3 +343,25 @@ class ZhihuClient(object):
         print answer_content
 
         self.get_comment(answer_comment_id)
+
+    def get_member_voteup_article(self, activity):
+        '''
+            解析赞同文章的信息
+        '''
+        user_link = activity.find('div', class_='author-info summary-wrapper').find('a').get('href')
+        article_title = activity.find('a', class_='post-link').string
+
+        article_info_div = activity.find('div', class_='zm-item-feed zm-item-post')
+        article_info_div_meta = article_info_div.find_all('meta')
+
+        article_url_token = article_info_div_meta[0].get('content')
+        article_id = article_info_div_meta[1].get('content')
+        article_content = activity.find('textarea', class_='content').string
+        created_time = activity.get('data-time')
+        print user_link
+        print article_title
+        print 'article_url_token '+str(article_url_token)
+        print 'article_id '+str(article_id)
+        print 'created_time '+str(created_time)
+        print article_content
+

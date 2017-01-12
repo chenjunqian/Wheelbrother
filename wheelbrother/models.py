@@ -49,3 +49,16 @@ class AnswerQuestion(models.Model):
     answer_id = models.CharField(max_length=1000)
     created_time = models.CharField(max_length=30)
     answer_comment_id = models.CharField(max_length=30)
+
+class VoteupArticle(models.Model):
+    '''
+        赞的文章
+    '''
+    user_link = models.CharField(max_length=30)
+    article_title = models.CharField(max_length=30)
+    # https://zhuanlan.zhihu.com/p/ + article_url_token 组成文章的连接
+    article_url_token = models.CharField(max_length=30)
+    # https://www.zhihu.com/r/posts/ + article_id + /comments 组成文章评论连接
+    article_id = models.CharField(max_length=30)
+    article_content = models.CharField(max_length=1000)
+    created_time = models.CharField(max_length=30)
