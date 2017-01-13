@@ -78,11 +78,11 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'lovemarkerdb',
+        'NAME': 'mysite',
         'USER':'root',
         'PASSWORD':'root',
         'HOST':'',
-        'PORT':''
+        'PORT':'',
     }
 }
 
