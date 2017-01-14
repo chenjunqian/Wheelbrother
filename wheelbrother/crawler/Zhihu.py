@@ -247,7 +247,7 @@ class ZhihuClient(object):
 
         print '开始获取评论信息 '
 
-        comments = self.session.get(MORE_COMMENT_URL+str(current_page), headers=HEADERS)
+        comments = self.session.get(MORE_COMMENT_URL+str(current_page), headers=HEADERS,verify=False)
         comments_json_result = json.loads(comments.text)
         total_count = comments_json_result['paging']['totalCount']
         per_page = comments_json_result['paging']['perPage']
@@ -262,7 +262,8 @@ class ZhihuClient(object):
                     break
 
                 for comment in comments_json_result['data']:
-                    self.parse_comment_result(comment)
+                    if self.parse_comment_result(comment) is None:
+                        break
 
                 current_page = current_page + 1
                 time.sleep(10)
@@ -274,16 +275,15 @@ class ZhihuClient(object):
         '''
             解析赞同回答的评论
         '''
-        voteupComment = VoteupComment()
+
         try:
-            #有匿名的情况
-            voteupComment.user_link = comment['author']['url']
-            voteupComment.username = comment['author']['name']
-            print 'comment user url: '+comment['author']['url']
-            print comment['author']['name']
+            #判断是否在数据库中已经存在
+            check_model = VoteupAnswer.objects.get(comment_id=comment['id'])
+            if check_model:
+                print '已经在数据库中'
+                return
         except:
-            voteupComment.user_link = ZHIHU_URL
-            voteupComment.username = 'anonymous'
+            pass
 
         print '\n'
         print ''.join(comment['content']).encode('utf-8').strip()
@@ -294,6 +294,16 @@ class ZhihuClient(object):
         print 'comment dislikesCount: '+str(comment['dislikesCount'])
         print '\n'
 
+        voteupComment = VoteupComment()
+        try:
+            #有匿名的情况
+            voteupComment.user_link = comment['author']['url']
+            voteupComment.username = comment['author']['name']
+            print 'comment user url: '+comment['author']['url']
+            print comment['author']['name']
+        except:
+            voteupComment.user_link = ZHIHU_URL
+            voteupComment.username = 'anonymous'
         voteupComment.comment_id = comment['id']
         voteupComment.comment_content = ''.join(comment['content']).encode('utf-8').strip()
         voteupComment.created_time = comment['createdTime']
@@ -301,6 +311,7 @@ class ZhihuClient(object):
         voteupComment.dislikes_count = comment['dislikesCount']
         voteupComment.in_reply_to_comment_id = comment['inReplyToCommentId']
         voteupComment.save()
+        return voteupComment
 
     def get_follow_question(self, activity):
         '''
