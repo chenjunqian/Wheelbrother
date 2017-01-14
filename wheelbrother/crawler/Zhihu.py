@@ -4,6 +4,7 @@ import re
 import time
 import json
 import os
+import requests
 from bs4 import BeautifulSoup
 from PIL import Image
 from wheelbrother.models import VoteupAnswer, VoteupComment, FollowQuestion, VoteupArticle, AnswerQuestion
@@ -101,7 +102,6 @@ class ZhihuClient(object):
 
 
     #####爬取用户动态#######
-
     def crawl_activities(self):
         """爬取用户动态入口函数"""
         limit = 20
@@ -117,7 +117,8 @@ class ZhihuClient(object):
             #使用线程池爬取用户动态
             for activity in activities:
                 self.parse_activitis(activity)
-
+            
+            print 'wait for 20s......'
             time.sleep(20)
 
     def get_more_activities(self, limit, start):
@@ -241,35 +242,33 @@ class ZhihuClient(object):
             获取赞同回答的评论
         '''
         current_page = 1
-        total_page = 1
         #获取评论url
         MORE_COMMENT_URL = ZHIHU_URL + '/r/answers/'+answer_comment_id+'/comments?page='
 
         print '开始获取评论信息 '
+        try:
+            #只获取一页的评论,同时赞数最多的评论就在第一页
+            comments = self.session.get(
+                MORE_COMMENT_URL+str(current_page),
+                headers=HEADERS,
+                verify=False
+                )
+        except requests.exceptions.ConnectionError:
+            print 'Connection refused, waiting for 40s......'
+            time.sleep(40)
+            self.get_comment(answer_comment_id)
 
-        comments = self.session.get(MORE_COMMENT_URL+str(current_page), headers=HEADERS,verify=False)
         comments_json_result = json.loads(comments.text)
-        total_count = comments_json_result['paging']['totalCount']
-        per_page = comments_json_result['paging']['perPage']
-        total_page = (total_count/per_page) + 1
+        print 'current page number : '+str(current_page)
+        if len(comments_json_result['data']) < 1:
+            return
 
-        while current_page <= total_page:
-            try:
-                comments = self.session.get(MORE_COMMENT_URL+str(current_page), headers=HEADERS)
-                comments_json_result = json.loads(comments.text)
-                print 'current page number : '+str(current_page)
-                if len(comments_json_result['data']) < 1:
-                    break
-
-                for comment in comments_json_result['data']:
-                    if self.parse_comment_result(comment) is None:
-                        break
-
-                current_page = current_page + 1
-                time.sleep(10)
-            except:
+        for comment in comments_json_result['data']:
+            if self.parse_comment_result(comment) is None:
                 break
 
+        print 'wait for 20s......'
+        time.sleep(20)
 
     def parse_comment_result(self, comment):
         '''
@@ -292,7 +291,6 @@ class ZhihuClient(object):
         print 'comment inReplyToCommentId: '+str(comment['inReplyToCommentId'])
         print 'comment likesCount: '+str(comment['likesCount'])
         print 'comment dislikesCount: '+str(comment['dislikesCount'])
-        print '\n'
 
         voteupComment = VoteupComment()
         try:
@@ -301,9 +299,11 @@ class ZhihuClient(object):
             voteupComment.username = comment['author']['name']
             print 'comment user url: '+comment['author']['url']
             print comment['author']['name']
+            print '\n'
         except:
             voteupComment.user_link = ZHIHU_URL
             voteupComment.username = 'anonymous'
+
         voteupComment.comment_id = comment['id']
         voteupComment.comment_content = ''.join(comment['content']).encode('utf-8').strip()
         voteupComment.created_time = comment['createdTime']
@@ -380,8 +380,11 @@ class ZhihuClient(object):
         '''
             解析赞同文章的信息
         '''
+        try:
+            user_link = activity.find('div', class_='author-info summary-wrapper').find('a').get('href')
+        except:
+            user_link = ''
 
-        user_link = activity.find('div', class_='author-info summary-wrapper').find('a').get('href')
         article_title = activity.find('a', class_='post-link').string
 
         article_info_div = activity.find('div', class_='zm-item-feed zm-item-post')
@@ -410,7 +413,7 @@ class ZhihuClient(object):
             pass
 
         voteupArticle = VoteupArticle()
-        voteupArticle.user_link = user_link
+        voteupArticle.user_link = ZHIHU_URL+user_link
         voteupArticle.article_title = ''.join(article_title).encode('utf-8').strip()
         voteupArticle.article_url_token = article_url_token
         voteupArticle.article_id = article_id
