@@ -4,6 +4,7 @@ import re
 import time
 import json
 import os
+import logging
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image
@@ -32,6 +33,13 @@ class ZhihuClient(object):
 
     def __init__(self, session):
         self.session = session
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        handle = logging.FileHandler('ZhihuCrawl.log')
+        handle.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handle.setFormatter(formatter)
+        self.logger.addHandler(handle)
 
     def login(self, account, password):
         """登录知乎"""
@@ -105,21 +113,48 @@ class ZhihuClient(object):
     def crawl_activities(self):
         """爬取用户动态入口函数"""
         limit = 20
-        start = '0'
+        start = 0
+
+        crawl_times = 0
 
         while limit == 20:
-            response = self.get_more_activities(limit, start)
+            try:
+                response = self.get_more_activities(limit, start)
+            except requests.exceptions.ConnectionError:
+                self.logger.exception('connection refused')
+                print 'Get activities connection refused, waiting for 120s......'
+                time.sleep(120)
+                continue
+            except:
+                self.logger.exception('Get activities error')
+                print 'Get activities error, waiting for 120s......'
+                time.sleep(120)
+                continue
+
             json_response = json.loads(response)
             limit = json_response['msg'][0]
             soup = BeautifulSoup(json_response['msg'][1], 'html.parser')
             activities = soup.find_all('div', class_='zm-profile-section-item zm-item clearfix')
-            start = activities[-1]['data-time'] if len(json_response) > 0 else 0
-            #使用线程池爬取用户动态
+            if len(activities) > 0:
+                start = activities[-1]['data-time']
+
             for activity in activities:
                 self.parse_activitis(activity)
-            
-            print 'wait for 20s......'
-            time.sleep(20)
+
+            crawl_times = crawl_times + 1
+            if crawl_times == 10:
+                print 'crawl 10 times, sleep 60s...'
+                time.sleep(60)
+            elif crawl_times == 20:
+                print 'crawl 20 times, sleep 80s...'
+                time.sleep(80)
+            elif crawl_times == 30:
+                print 'crawl 30 times, sleep 1200s...'
+                crawl_times = 0
+                time.sleep(1200)
+            else:
+                print 'waiting for 20s......'
+                time.sleep(20)
 
     def get_more_activities(self, limit, start):
         '''
@@ -254,9 +289,15 @@ class ZhihuClient(object):
                 verify=False
                 )
         except requests.exceptions.ConnectionError:
+            self.logger.exception('Get comment connection refused')
             print 'Connection refused, waiting for 40s......'
             time.sleep(40)
             self.get_comment(answer_comment_id)
+        except:
+            self.logger.exception('Get comment error')
+            print 'Get comments error, waiting for 40s......'
+            time.sleep(40)
+            return
 
         comments_json_result = json.loads(comments.text)
         print 'current page number : '+str(current_page)
@@ -267,7 +308,7 @@ class ZhihuClient(object):
             if self.parse_comment_result(comment) is None:
                 break
 
-        print 'wait for 20s......'
+        print 'waiting for 20s......'
         time.sleep(20)
 
     def parse_comment_result(self, comment):
