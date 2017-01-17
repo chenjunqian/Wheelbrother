@@ -38,6 +38,7 @@ class ZhihuClient(object):
         handle = logging.FileHandler('ZhihuCrawl.log')
         handle.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter.converter = time.localtime
         handle.setFormatter(formatter)
         self.logger.addHandler(handle)
 
@@ -143,17 +144,17 @@ class ZhihuClient(object):
 
             crawl_times = crawl_times + 1
             if crawl_times == 10:
-                print 'crawl 10 times, sleep 60s...'
+                self.logger.info('crawl activities 10 times, sleep 60s...')
                 time.sleep(60)
             elif crawl_times == 20:
-                print 'crawl 20 times, sleep 80s...'
+                self.logger.info('crawl activities 20 times, sleep 80s...')
                 time.sleep(80)
             elif crawl_times == 30:
-                print 'crawl 30 times, sleep 1200s...'
+                self.logger.info('crawl activities 30 times, sleep 1200s...')
                 crawl_times = 0
                 time.sleep(1200)
             else:
-                print 'waiting for 20s......'
+                self.logger.info('crawl activities, waiting for 20s...')
                 time.sleep(20)
 
     def get_more_activities(self, limit, start):
@@ -179,38 +180,37 @@ class ZhihuClient(object):
         '''根据不同的标签来判断用户动态的类型'''
         if activity.attrs['data-type-detail'] == 'member_voteup_answer':
             #赞同了回答
-            print '\n赞同了回答 \n'
+            self.logger.info('\n赞同了回答 \n')
             self.get_voteup_answer_content(activity)
 
         if activity.attrs['data-type-detail'] == 'member_follow_question':
             #关注了问题
-            print '\n 关注了问题 \n'
+            self.logger.info('\n 关注了问题 \n')
             self.get_follow_question(activity)
 
         if activity.attrs['data-type-detail'] == 'member_answer_question':
             #回答了问题
-            print '\n回答了问题 \n'
+            self.logger.info('\n回答了问题 \n')
             self.get_member_answer_question(activity)
 
         if activity.attrs['data-type-detail'] == 'member_follow_column':
             #关注了专栏
-            print '\n关注了专栏 \n'
+            self.logger.info('\n关注了专栏 \n')
 
         if activity.attrs['data-type-detail'] == 'member_voteup_article':
             #赞同了文章
-            print '\n赞同了文章 \n'
+            self.logger.info('\n赞同了文章 \n')
             self.get_member_voteup_article(activity)
 
         if activity.attrs['data-type-detail'] == 'member_create_article':
             #发布了文章
-            print '\n发布了文章 \n'
+            self.logger.info('\n发布了文章 \n')
 
     def get_voteup_answer_content(self, activity):
         '''
             解析赞同回答的内容
         '''
         voteupAnswer = VoteupAnswer()
-        print '开始获取赞同答案信息 '
         #回答者的用户信息
         author_link_top = activity.find_all('span', class_='summary-wrapper')
         try:
@@ -244,22 +244,10 @@ class ZhihuClient(object):
             #判断是否在数据库中已经存在
             check_model = VoteupAnswer.objects.get(answer_id=answer_id)
             if check_model:
-                print '已经在数据库中'
+                self.logger.info('已经在数据库中')
                 return
         except:
             pass
-
-        print '\n'
-        print 'user_link : '+str(user_link)
-        print ''.join(username).encode('utf-8').strip()
-        print 'answer_id : '+str(answer_id)
-        print ''.join(answer_content).encode('utf-8').strip()
-        print 'answer_data_time : '+str(answer_data_time)
-        print 'answer_vote_count : '+str(answer_vote_count)
-        print 'answer_comment_id : '+str(answer_comment_id)
-        print 'question_link : '+str(question_link)
-        print 'quetion_id : '+str(question_id)
-        print '\n'
 
         voteupAnswer.user_link = ZHIHU_URL.join(user_link)
         voteupAnswer.username = ''.join(username).encode('utf-8').strip()
@@ -268,7 +256,10 @@ class ZhihuClient(object):
         voteupAnswer.question_id = question_id
         voteupAnswer.answer_vote_count = answer_vote_count
         voteupAnswer.answer_comment_id = answer_comment_id
+        voteupAnswer.answer_data_time = answer_data_time
         voteupAnswer.save()
+        self.logger.info('save voteup answer successful \n'+
+                         ''.join(answer_content).encode('utf-8').strip())
 
         self.get_comment(answer_comment_id)
 
@@ -280,7 +271,6 @@ class ZhihuClient(object):
         #获取评论url
         MORE_COMMENT_URL = ZHIHU_URL + '/r/answers/'+answer_comment_id+'/comments?page='
 
-        print '开始获取评论信息 '
         try:
             #只获取一页的评论,同时赞数最多的评论就在第一页
             comments = self.session.get(
@@ -290,17 +280,14 @@ class ZhihuClient(object):
                 )
         except requests.exceptions.ConnectionError:
             self.logger.exception('Get comment connection refused')
-            print 'Connection refused, waiting for 40s......'
             time.sleep(40)
             self.get_comment(answer_comment_id)
         except:
             self.logger.exception('Get comment error')
-            print 'Get comments error, waiting for 40s......'
             time.sleep(40)
             return
 
         comments_json_result = json.loads(comments.text)
-        print 'current page number : '+str(current_page)
         if len(comments_json_result['data']) < 1:
             return
 
@@ -308,7 +295,7 @@ class ZhihuClient(object):
             if self.parse_comment_result(comment) is None:
                 break
 
-        print 'waiting for 20s......'
+        self.logger.info('waiting for 20s......')
         time.sleep(20)
 
     def parse_comment_result(self, comment):
@@ -320,27 +307,16 @@ class ZhihuClient(object):
             #判断是否在数据库中已经存在
             check_model = VoteupAnswer.objects.get(comment_id=comment['id'])
             if check_model:
-                print '已经在数据库中'
+                self.logger.info('评论已经在数据库中')
                 return
         except:
             pass
-
-        print '\n'
-        print ''.join(comment['content']).encode('utf-8').strip()
-        print 'comment id: '+str(comment['id'])
-        print 'comment createdTime: '+str(comment['createdTime'])
-        print 'comment inReplyToCommentId: '+str(comment['inReplyToCommentId'])
-        print 'comment likesCount: '+str(comment['likesCount'])
-        print 'comment dislikesCount: '+str(comment['dislikesCount'])
 
         voteupComment = VoteupComment()
         try:
             #有匿名的情况
             voteupComment.user_link = comment['author']['url']
             voteupComment.username = comment['author']['name']
-            print 'comment user url: '+comment['author']['url']
-            print comment['author']['name']
-            print '\n'
         except:
             voteupComment.user_link = ZHIHU_URL
             voteupComment.username = 'anonymous'
@@ -352,6 +328,8 @@ class ZhihuClient(object):
         voteupComment.dislikes_count = comment['dislikesCount']
         voteupComment.in_reply_to_comment_id = comment['inReplyToCommentId']
         voteupComment.save()
+        self.logger.info('save voteup comment \n'+
+                         ''.join(comment['content']).encode('utf-8').strip())
         return voteupComment
 
     def get_follow_question(self, activity):
@@ -362,18 +340,13 @@ class ZhihuClient(object):
         question_id = re.findall(r"(?<=/question/).*", question_link)[0]
         question_title = activity.find('a', class_='question_link').string
 
-        print '\n'
-        print 'question_link : '+question_link
-        print 'question_id : '+str(question_id)
-        print 'question_title : '+''.join(question_title).encode('utf-8').strip()
-        print '\n'
-
         followQuestion = FollowQuestion()
         followQuestion.question_id = question_id
         followQuestion.question_link = question_link
         followQuestion.question_title = ''.join(question_title).encode('utf-8').strip()
         followQuestion.save()
-
+        self.logger.info('save follow question \n'+
+                         'title :'.join(question_title).encode('utf-8').strip())
 
     def get_member_answer_question(self, activity):
         '''
@@ -391,20 +364,10 @@ class ZhihuClient(object):
             #判断是否在数据库中已经存在
             check_model = AnswerQuestion.objects.get(answer_id=answer_id)
             if check_model:
-                print '回答的问题已经在数据库中'
+                self.logger.info('回答的问题已经在数据库中\n')
                 return
         except:
             pass
-
-        print '\n'
-        print 'question_id : ' + str(question_id)
-        print 'question_link : ' + question_link
-        print 'answer_id : ' + str(answer_id)
-        print 'answer_comment_id : '+str(answer_comment_id)
-        print 'created_time : '+str(created_time)
-        print ''.join(question_title).encode('utf-8').strip()
-        print ''.join(answer_content).encode('utf-8').strip()
-        print '\n'
 
         answerQuestion = AnswerQuestion()
         answerQuestion.question_id = question_id
@@ -414,6 +377,8 @@ class ZhihuClient(object):
         answerQuestion.created_time = created_time
         answerQuestion.answer_comment_id = answer_comment_id
         answerQuestion.save()
+        self.logger.info('save answer question \n'+
+                         ''.join(question_title).encode('utf-8').strip())
 
         self.get_comment(answer_comment_id)
 
@@ -422,7 +387,10 @@ class ZhihuClient(object):
             解析赞同文章的信息
         '''
         try:
-            user_link = activity.find('div', class_='author-info summary-wrapper').find('a').get('href')
+            user_link = activity.find(
+                'div',
+                class_='author-info summary-wrapper'
+                ).find('a').get('href')
         except:
             user_link = ''
 
@@ -435,20 +403,12 @@ class ZhihuClient(object):
         article_id = article_info_div_meta[1].get('content')
         article_content = activity.find('textarea', class_='content').string
         created_time = activity.get('data-time')
-        print '\n'
-        print user_link
-        print ''.join(article_title).encode('utf-8').strip()
-        print 'article_url_token '+str(article_url_token)
-        print 'article_id '+str(article_id)
-        print 'created_time '+str(created_time)
-        print ''.join(article_content).encode('utf-8').strip()
-        print '\n'
 
         try:
             #判断是否在数据库中已经存在
             check_model = VoteupArticle.objects.get(article_url_token=article_url_token)
             if check_model:
-                print '赞同的文章已经在数据库中 \n'
+                self.logger.info('赞同的文章已经在数据库中 \n')
                 return
         except:
             pass
@@ -461,3 +421,5 @@ class ZhihuClient(object):
         voteupArticle.article_content = ''.join(article_content).encode('utf-8').strip()
         voteupArticle.created_time = created_time
         voteupArticle.save()
+        self.logger.info('save voteup article \n'+
+                         ''.join(article_title).encode('utf-8').strip())
