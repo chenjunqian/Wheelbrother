@@ -38,7 +38,7 @@ class ZhihuClient(object):
         handle = logging.FileHandler('ZhihuCrawl.log')
         handle.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        formatter = logging.Formatter.converter = time.localtime
+        formatter.converter = time.localtime
         handle.setFormatter(formatter)
         self.logger.addHandler(handle)
 
@@ -114,7 +114,7 @@ class ZhihuClient(object):
     def crawl_activities(self):
         """爬取用户动态入口函数"""
         limit = 20
-        start = 0
+        start = 1466175538 #获取动态的时间戳 0 则是从现在开始获取
 
         crawl_times = 0
 
@@ -244,7 +244,7 @@ class ZhihuClient(object):
             #判断是否在数据库中已经存在
             check_model = VoteupAnswer.objects.get(answer_id=answer_id)
             if check_model:
-                self.logger.info('已经在数据库中')
+                self.logger.info('赞同的答案已经在数据库中')
                 return
         except:
             pass
@@ -258,8 +258,9 @@ class ZhihuClient(object):
         voteupAnswer.answer_comment_id = answer_comment_id
         voteupAnswer.answer_data_time = answer_data_time
         voteupAnswer.save()
-        self.logger.info('save voteup answer successful \n'+
-                         ''.join(answer_content).encode('utf-8').strip())
+        self.logger.info('save voteup answer successful '+
+                         ''.join(answer_content).encode('utf-8').strip()+'\n'+
+                         'time : '+str(answer_data_time))
 
         self.get_comment(answer_comment_id)
 
@@ -328,8 +329,9 @@ class ZhihuClient(object):
         voteupComment.dislikes_count = comment['dislikesCount']
         voteupComment.in_reply_to_comment_id = comment['inReplyToCommentId']
         voteupComment.save()
-        self.logger.info('save voteup comment \n'+
-                         ''.join(comment['content']).encode('utf-8').strip())
+        self.logger.info('save voteup comment '+
+                         ''.join(comment['content']).encode('utf-8').strip()+'/n'+
+                         'time : '+str(comment['createdTime']))
         return voteupComment
 
     def get_follow_question(self, activity):
@@ -345,8 +347,8 @@ class ZhihuClient(object):
         followQuestion.question_link = question_link
         followQuestion.question_title = ''.join(question_title).encode('utf-8').strip()
         followQuestion.save()
-        self.logger.info('save follow question \n'+
-                         'title :'.join(question_title).encode('utf-8').strip())
+        self.logger.info('save follow question '+
+                         ''.join(question_title).encode('utf-8').strip())
 
     def get_member_answer_question(self, activity):
         '''
@@ -377,8 +379,9 @@ class ZhihuClient(object):
         answerQuestion.created_time = created_time
         answerQuestion.answer_comment_id = answer_comment_id
         answerQuestion.save()
-        self.logger.info('save answer question \n'+
-                         ''.join(question_title).encode('utf-8').strip())
+        self.logger.info('save answer question '+
+                         ''.join(question_title).encode('utf-8').strip()+' \n'+
+                         'time : '+str(created_time))
 
         self.get_comment(answer_comment_id)
 
@@ -421,5 +424,6 @@ class ZhihuClient(object):
         voteupArticle.article_content = ''.join(article_content).encode('utf-8').strip()
         voteupArticle.created_time = created_time
         voteupArticle.save()
-        self.logger.info('save voteup article \n'+
-                         ''.join(article_title).encode('utf-8').strip())
+        self.logger.info('save voteup article '+
+                         ''.join(article_title).encode('utf-8').strip()+' \n'+
+                         'time : '+str(created_time))
