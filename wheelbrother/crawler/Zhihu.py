@@ -114,9 +114,10 @@ class ZhihuClient(object):
     def crawl_activities(self):
         """爬取用户动态入口函数"""
         limit = 20
-        start = 1466175538 #获取动态的时间戳 0 则是从现在开始获取
+        start = 1421184149 #获取动态的时间戳 0 则是从现在开始获取
 
         crawl_times = 0
+        response = []
 
         while limit == 20:
             try:
@@ -271,6 +272,8 @@ class ZhihuClient(object):
         current_page = 1
         #获取评论url
         MORE_COMMENT_URL = ZHIHU_URL + '/r/answers/'+answer_comment_id+'/comments?page='
+
+        comments = []
 
         try:
             #只获取一页的评论,同时赞数最多的评论就在第一页
