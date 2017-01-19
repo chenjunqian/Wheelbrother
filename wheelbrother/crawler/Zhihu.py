@@ -34,9 +34,8 @@ class ZhihuClient(object):
     def __init__(self, session):
         self.session = session
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)
         handle = logging.FileHandler('ZhihuCrawl.log')
-        handle.setLevel(logging.INFO)
+        handle.setLevel(logging.DEBUG)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         formatter.converter = time.localtime
         handle.setFormatter(formatter)
@@ -114,26 +113,32 @@ class ZhihuClient(object):
     def crawl_activities(self):
         """爬取用户动态入口函数"""
         limit = 20
-        start = 1417592059 #获取动态的时间戳 0 则是从现在开始获取
+        start = 1417092208 #获取动态的时间戳 0 则是从现在开始获取
 
         crawl_times = 0
         response = []
 
-        while limit == 20:
+        while True:
             try:
                 response = self.get_more_activities(limit, start)
+                print response
+                json_response = json.loads(response)
             except requests.exceptions.ConnectionError:
                 self.logger.exception('connection refused')
                 print 'Get activities connection refused, waiting for 120s......'
                 time.sleep(120)
                 continue
+            except ValueError:
+                self.logger.exception('Get activities ValueError'+
+                                      ' maybe No JSON object could be decoded')
+                print 'Get activities error, waiting for 1200s......'
+                time.sleep(1200)
             except:
                 self.logger.exception('Get activities error')
                 print 'Get activities error, waiting for 120s......'
                 time.sleep(120)
                 continue
 
-            json_response = json.loads(response)
             limit = json_response['msg'][0]
             soup = BeautifulSoup(json_response['msg'][1], 'html.parser')
             activities = soup.find_all('div', class_='zm-profile-section-item zm-item clearfix')
