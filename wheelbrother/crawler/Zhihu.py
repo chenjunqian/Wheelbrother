@@ -34,7 +34,7 @@ class ZhihuClient(object):
     def __init__(self, session):
         self.session = session
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
         handle = logging.FileHandler('ZhihuCrawl.log')
         handle.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -114,7 +114,7 @@ class ZhihuClient(object):
     def crawl_activities(self):
         """爬取用户动态入口函数"""
         limit = 20
-        start = 1421184149 #获取动态的时间戳 0 则是从现在开始获取
+        start = 1417592059 #获取动态的时间戳 0 则是从现在开始获取
 
         crawl_times = 0
         response = []
@@ -139,6 +139,7 @@ class ZhihuClient(object):
             activities = soup.find_all('div', class_='zm-profile-section-item zm-item clearfix')
             if len(activities) > 0:
                 start = activities[-1]['data-time']
+                self.logger.info('start time : '+str(start))
 
             for activity in activities:
                 self.parse_activitis(activity)
