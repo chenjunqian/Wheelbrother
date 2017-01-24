@@ -8,7 +8,6 @@ import logging
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image
-from wheelbrother.models import VoteupAnswer, VoteupComment, FollowQuestion, VoteupArticle, AnswerQuestion
 
 
 ZHIHU_URL = 'https://www.zhihu.com'
