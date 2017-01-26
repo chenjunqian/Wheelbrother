@@ -3,7 +3,6 @@
 import MySQLdb
 import json
 import inspect
-import model
 
 class BaseModel(object):
 
@@ -45,14 +44,3 @@ class BaseModel(object):
         self.conn.commit()
         self.conn.close()
 
-
-class VoteupAnswer(BaseModel):
-
-    link = model.Filed()
-    name = 'test name'
-    question = 'test question'
-
-
-if __name__ == '__main__':
-    vote = VoteupAnswer(link='link', name='my name', question='my question');
-    vote.save()
