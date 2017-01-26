@@ -5,13 +5,22 @@ import json
 import inspect
 import model
 
-class Store(object):
+class BaseModel(object):
 
-    def __init__(self):
-        self.dbName = 'wheelbrother'
+    def __init__(self, **kwargs):
+        print 'init : '+str(self)
+        self.db = 'wheelbrother'
         self.conn = MySQLdb.connect(host='localhost', user='root', passwd='root')
-        self.conn.select_db(self.dbName)
+        self.conn.select_db(self.db)
         self.cur__ = self.conn.cursor()
+        if len(kwargs) > 0:
+            sqlcommand = 'SELECT * FROM ' + self.db + '_' + self.__class__.__name__ + ' WHERE '
+            for name, value in kwargs.items():
+                if isinstance(value, str):
+                    sqlcommand = sqlcommand+str(name)+ '=' + "'" +str(value) + "'" + ' '
+                else:
+                    sqlcommand = sqlcommand+str(name)+ '=' +str(value) + ' '
+            print sqlcommand
 
 
     def save(self):
@@ -24,40 +33,26 @@ class Store(object):
                 continue
             else:
                 store_dic[attr[0]] = attr[1]
-                print attr[0]
-                print type(self.__getattribute__(attr[0]))
-
-        print 'store_dic : '+'\n' + str(store_dic)
 
         filed_name = list()
         filed_value = list()
-        for item in store_dic:
-            filed_name.append(item)
-            filed_value.append(store_dic[item])
-        print tuple(filed_name)
-        print tuple(filed_value)
-        sqlcommand = 'INSERT INTO ' + self.dbName+ '_' + self.__class__.__name__ + str(tuple(filed_name)) + ' VALUE'+str(tuple(filed_value))
+        for name, value in store_dic.items():
+            filed_name.append(name)
+            filed_value.append(value)
+        sqlcommand = 'INSERT INTO ' + self.db + '_' + self.__class__.__name__ + str(tuple(filed_name)) + ' VALUE'+str(tuple(filed_value))
         self.cur__.execute(sqlcommand)
         self.cur__.close()
         self.conn.commit()
         self.conn.close()
 
 
-class VoteupAnswer(Store):
+class VoteupAnswer(BaseModel):
 
     link = model.Filed()
     name = 'test name'
     question = 'test question'
 
-    def __init__(self):
-        self.user_link = 'a'
-        self.username = 'user name'
-        self.question_id = 'question id'
-        VoteupAnswer.link = 'link'
-
 
 if __name__ == '__main__':
-    vote = VoteupAnswer();
-    store = Store()
-
+    vote = VoteupAnswer(link='link', name='my name', question='my question');
     vote.save()
