@@ -6,6 +6,7 @@ import json
 import os
 import logging
 import requests
+import MySQLdb
 from bs4 import BeautifulSoup
 from PIL import Image
 
@@ -39,6 +40,15 @@ class ZhihuClient(object):
         formatter.converter = time.localtime
         handle.setFormatter(formatter)
         self.logger.addHandler(handle)
+
+        self.connection = MySQLdb.connect(
+            host='localhost',
+            user='root',
+            passwd='123456',
+            db='wheelbrother',
+        )
+        self.cursor = self.connection.cursor()
+
 
     def login(self, account, password):
         """登录知乎"""
@@ -112,7 +122,7 @@ class ZhihuClient(object):
     def crawl_activities(self):
         """爬取用户动态入口函数"""
         limit = 20
-        start = 1387420532 #获取动态的时间戳 0 则是从现在开始获取
+        start = 0 #获取动态的时间戳 0 则是从现在开始获取
 
         crawl_times = 0
         response = []
@@ -216,7 +226,6 @@ class ZhihuClient(object):
         '''
             解析赞同回答的内容
         '''
-        voteupAnswer = VoteupAnswer()
         #回答者的用户信息
         author_link_top = activity.find_all('span', class_='summary-wrapper')
         try:
@@ -248,22 +257,38 @@ class ZhihuClient(object):
 
         try:
             #判断是否在数据库中已经存在
-            check_model = VoteupAnswer.objects.get(answer_id=answer_id)
+            check_query = "SELECT * FROM wheelbrother_voteupanswer WHERE answer_id=%s"
+            self.cursor.execute(check_query, [answer_id])
+            check_model = self.cursor.fechall()
             if check_model:
                 self.logger.info('赞同的答案已经在数据库中')
                 return
         except:
             pass
 
-        voteupAnswer.user_link = ZHIHU_URL.join(user_link)
-        voteupAnswer.username = ''.join(username).encode('utf-8').strip()
-        voteupAnswer.answer_id = answer_id
-        voteupAnswer.answer_content = ''.join(answer_content).encode('utf-8').strip()
-        voteupAnswer.question_id = question_id
-        voteupAnswer.answer_vote_count = answer_vote_count
-        voteupAnswer.answer_comment_id = answer_comment_id
-        voteupAnswer.answer_data_time = answer_data_time
-        voteupAnswer.save()
+        voteup_answer_query = ("INSERT INTO wheelbrother_voteupanswer"+
+                               "(user_link,"+
+                               "username,"+
+                               "answer_id,"+
+                               "answer_content,"+
+                               "question_id,"+
+                               "answer_vote_count,"+
+                               "answer_comment_id,"+
+                               "answer_data_time)"+
+                               " VAULUES(%s,%s,%s,%s,%s,%s,%s,%s)")
+        self.cursor.execute(
+            voteup_answer_query,
+            [
+                ZHIHU_URL.join(user_link),
+                ''.join(username).encode('utf-8').strip(),
+                answer_id,
+                ''.join(answer_content).encode('utf-8').strip(),
+                question_id,
+                answer_vote_count,
+                answer_comment_id,
+                answer_data_time
+            ]
+        )
         self.logger.info('save voteup answer successful '+
                          ''.join(answer_content).encode('utf-8').strip()+'\n'+
                          'time : '+str(answer_data_time))
@@ -278,8 +303,6 @@ class ZhihuClient(object):
         #获取评论url
         MORE_COMMENT_URL = ZHIHU_URL + '/r/answers/'+answer_comment_id+'/comments?page='
 
-        comments = []
-
         try:
             #只获取一页的评论,同时赞数最多的评论就在第一页
             comments = self.session.get(
@@ -290,7 +313,7 @@ class ZhihuClient(object):
         except requests.exceptions.ConnectionError:
             self.logger.exception('Get comment connection refused')
             time.sleep(40)
-            self.get_comment(answer_comment_id)
+            return
         except:
             self.logger.exception('Get comment error')
             time.sleep(40)
@@ -314,33 +337,52 @@ class ZhihuClient(object):
 
         try:
             #判断是否在数据库中已经存在
-            check_model = VoteupAnswer.objects.get(comment_id=comment['id'])
+            check_query = "SELECT * FROM wheelbrother_voteupcomment WHERE comment_id=%s"
+            self.cursor.execute(check_query, [comment['id']])
+            check_model = self.cursor.fechall()
             if check_model:
                 self.logger.info('评论已经在数据库中')
                 return
         except:
             pass
 
-        voteupComment = VoteupComment()
         try:
             #有匿名的情况
-            voteupComment.user_link = comment['author']['url']
-            voteupComment.username = comment['author']['name']
+            user_link = comment['author']['url']
+            username = comment['author']['name']
         except:
-            voteupComment.user_link = ZHIHU_URL
-            voteupComment.username = 'anonymous'
+            user_link = ZHIHU_URL
+            username = 'anonymous'
 
-        voteupComment.comment_id = comment['id']
-        voteupComment.comment_content = ''.join(comment['content']).encode('utf-8').strip()
-        voteupComment.created_time = comment['createdTime']
-        voteupComment.like_count = comment['likesCount']
-        voteupComment.dislikes_count = comment['dislikesCount']
-        voteupComment.in_reply_to_comment_id = comment['inReplyToCommentId']
-        voteupComment.save()
+        voteup_comment_query = ("INSERT INTO wheelbrother_voteupcomment"+
+                                "(comment_id,"+
+                                "comment_content,"+
+                                "created_time,"+
+                                "like_count,"+
+                                "dislikes_count,"+
+                                "in_reply_to_comment_id,"+
+                                "user_link,"+
+                                "username"
+                                " VAULUES(%s,%s,%s,%s,%s,%s,%s,%s)")
+        query_value = [
+            comment['id'],
+            ''.join(comment['content']).encode('utf-8').strip(),
+            comment['createdTime'],
+            comment['likesCount'],
+            comment['dislikesCount'],
+            comment['inReplyToCommentId'],
+            user_link,
+            username
+        ]
+        self.cursor.execute(
+            voteup_comment_query,
+            query_value
+        )
+
         self.logger.info('save voteup comment '+
                          ''.join(comment['content']).encode('utf-8').strip()+'/n'+
                          'time : '+str(comment['createdTime']))
-        return voteupComment
+        return query_value
 
     def get_follow_question(self, activity):
         '''
@@ -350,11 +392,25 @@ class ZhihuClient(object):
         question_id = re.findall(r"(?<=/question/).*", question_link)[0]
         question_title = activity.find('a', class_='question_link').string
 
-        followQuestion = FollowQuestion()
-        followQuestion.question_id = question_id
-        followQuestion.question_link = question_link
-        followQuestion.question_title = ''.join(question_title).encode('utf-8').strip()
-        followQuestion.save()
+        follow_question_query = (
+            "INSERT INTO wheelbrother_followquestion"+
+            "(question_id,"+
+            "question_link,"+
+            "question_title"
+            " VAULUES(%s,%s,%s)"
+        )
+
+        query_value = [
+            question_id,
+            question_link,
+            question_title
+        ]
+
+        self.cursor.execute(
+            follow_question_query,
+            query_value
+        )
+
         self.logger.info('save follow question '+
                          ''.join(question_title).encode('utf-8').strip())
 
@@ -372,21 +428,40 @@ class ZhihuClient(object):
 
         try:
             #判断是否在数据库中已经存在
-            check_model = AnswerQuestion.objects.get(answer_id=answer_id)
+            check_query = "SELECT * FROM wheelbrother_answerquestion WHERE answer_id=%s"
+            self.cursor.execute(check_query, [answer_id])
+            check_model = self.cursor.fechall()
             if check_model:
                 self.logger.info('回答的问题已经在数据库中\n')
                 return
         except:
             pass
 
-        answerQuestion = AnswerQuestion()
-        answerQuestion.question_id = question_id
-        answerQuestion.question_title = ''.join(question_title).encode('utf-8').strip()
-        answerQuestion.answer_content = ''.join(answer_content).encode('utf-8').strip()
-        answerQuestion.answer_id = answer_id
-        answerQuestion.created_time = created_time
-        answerQuestion.answer_comment_id = answer_comment_id
-        answerQuestion.save()
+        answer_question_query = (
+            "INSERT INTO wheelbrother_answerquestion"+
+            "(question_id,"+
+            "question_title,"+
+            "answer_content,"+
+            "answer_id,"+
+            "created_time,"+
+            "answer_comment_id,"
+            " VAULUES(%s,%s,%s,%s,%s,%s)"
+        )
+
+        query_value = [
+            question_id,
+            question_title,
+            answer_content,
+            answer_id,
+            created_time,
+            answer_comment_id
+        ]
+
+        self.cursor.execute(
+            answer_question_query,
+            query_value
+        )
+
         self.logger.info('save answer question '+
                          ''.join(question_title).encode('utf-8').strip()+' \n'+
                          'time : '+str(created_time))
@@ -417,21 +492,41 @@ class ZhihuClient(object):
 
         try:
             #判断是否在数据库中已经存在
-            check_model = VoteupArticle.objects.get(article_url_token=article_url_token)
+            check_query = "SELECT * FROM wheelbrother_voteuparticle WHERE article_url_token=%s"
+            self.cursor.execute(check_query, [article_url_token])
+            check_model = self.cursor.fechall()
             if check_model:
                 self.logger.info('赞同的文章已经在数据库中 \n')
                 return
         except:
             pass
 
-        voteupArticle = VoteupArticle()
-        voteupArticle.user_link = ZHIHU_URL+user_link
-        voteupArticle.article_title = ''.join(article_title).encode('utf-8').strip()
-        voteupArticle.article_url_token = article_url_token
-        voteupArticle.article_id = article_id
-        voteupArticle.article_content = ''.join(article_content).encode('utf-8').strip()
-        voteupArticle.created_time = created_time
-        voteupArticle.save()
+
+        voteup_article_query = (
+            "INSERT INTO wheelbrother_voteuparticle"+
+            "(user_link,"+
+            "article_title,"+
+            "article_url_token,"+
+            "article_id,"+
+            "article_content,"+
+            "created_time,"
+            " VAULUES(%s,%s,%s,%s,%s,%s)"
+        )
+
+        query_value = [
+            ZHIHU_URL+user_link,
+            ''.join(article_title).encode('utf-8').strip(),
+            article_url_token,
+            article_id,
+            ''.join(article_content).encode('utf-8').strip(),
+            created_time
+        ]
+
+        self.cursor.execute(
+            voteup_article_query,
+            query_value
+        )
+
         self.logger.info('save voteup article '+
                          ''.join(article_title).encode('utf-8').strip()+' \n'+
                          'time : '+str(created_time))
