@@ -283,7 +283,7 @@ class zhihu_crawler:
                 voteup_article_content['article_url_token'],
                 voteup_article_content['article_id'],
                 voteup_article_content['article_content'],
-                
+                voteup_article_content['created_time'],
             ]
 
             self.cursor.execute(
@@ -355,5 +355,7 @@ class zhihu_crawler:
         return query_value
 
 if __name__ == "__main__":
+    my_zhihu_crawler = zhihu_crawler(CrawlerSession())
     while True:
+        my_zhihu_crawler.run()
         time.sleep(1200)

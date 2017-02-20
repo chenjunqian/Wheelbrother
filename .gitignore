@@ -4,3 +4,5 @@
 .vscode/.ropeproject/objectdb
 
 *.pyc
+
+crawler/ZhihuCrawl.log
