@@ -156,7 +156,7 @@ class ZhihuClient(object):
             'user_link':user_link,
             'username':username,
             'answer_id':answer_id,
-            'answer_content':answer_content.encode('utf-8').strip(),
+            'answer_content':answer_content,
             'question_id':question_id,
             'answer_vote_count':answer_vote_count,
             'answer_comment_id':answer_comment_id,
@@ -207,7 +207,7 @@ class ZhihuClient(object):
         follow_question_content = {
             'question_link':question_link,
             'question_id':question_id,
-            'question_title':''.join(question_title).encode('utf-8').strip(),
+            'question_title':question_title,
         }
 
         return follow_question_content
@@ -226,8 +226,8 @@ class ZhihuClient(object):
 
         answer_question_content = {
             'question_id':question_id,
-            'question_title':question_title.encode('utf-8').strip(),
-            'answer_content':answer_content.encode('utf-8').strip(),
+            'question_title':question_title,
+            'answer_content':answer_content,
             'answer_id':answer_id,
             'created_time':created_time,
             'answer_comment_id':answer_comment_id
@@ -259,10 +259,10 @@ class ZhihuClient(object):
 
         voteup_article_content = {
             'user_link':ZHIHU_URL+user_link,
-            'article_title':article_title.encode('utf-8').strip(),
+            'article_title':article_title,
             'article_url_token':article_url_token,
             'article_id':article_id,
-            'article_content':article_content.encode('utf-8').strip(),
+            'article_content':article_content,
             'created_time':created_time
         }
 

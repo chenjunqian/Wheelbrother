@@ -133,13 +133,14 @@ class zhihu_crawler:
                                    "answer_comment_id,"+
                                    "answer_data_time)"+
                                    " VALUES(%s,%s,%s,%s,%s,%s,%s,%s)")
+
             self.cursor.execute(
                 voteup_answer_query,
                 [
                     question_content['user_link'],
-                    question_content['username'],
+                    ''.join(question_content['username']).encode('utf-8').strip(),
                     question_content['answer_id'],
-                    question_content['answer_content'],
+                    ''.join(question_content['answer_content']).encode('utf-8').strip(),
                     question_content['question_id'],
                     question_content['answer_vote_count'],
                     question_content['answer_comment_id'],
@@ -170,7 +171,7 @@ class zhihu_crawler:
             query_value = [
                 follow_question_content['question_id'],
                 follow_question_content['question_link'],
-                follow_question_content['question_title']
+                ''.join(follow_question_content['question_title']).encode('utf-8').strip()
             ]
 
 
@@ -218,8 +219,8 @@ class zhihu_crawler:
 
             query_value = [
                 answer_question_content['question_id'],
-                answer_question_content['question_title'],
-                answer_question_content['answer_content'],
+                ''.join(answer_question_content['question_title']).encode('utf-8').strip(),
+                ''.join(answer_question_content['answer_content']).encode('utf-8').strip(),
                 answer_question_content['answer_id'],
                 answer_question_content['created_time'],
                 answer_question_content['answer_comment_id']
@@ -282,7 +283,7 @@ class zhihu_crawler:
                 voteup_article_content['article_title'],
                 voteup_article_content['article_url_token'],
                 voteup_article_content['article_id'],
-                voteup_article_content['article_content'],
+                ''.join(voteup_article_content['article_content']).encode('utf-8').strip(),
                 voteup_article_content['created_time'],
             ]
 
