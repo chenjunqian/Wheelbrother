@@ -26,6 +26,7 @@ class zhihu_crawler:
             user='root',
             passwd='root',
             db='mysite',
+            charset="utf8"
         )
         self.cursor = self.connection.cursor()
 
@@ -36,8 +37,7 @@ class zhihu_crawler:
         except:
             pass
 
-        crawler_session = CrawlerSession()
-        zhihu_client = Zhihu.ZhihuClient(crawler_session.get_session(), self.logger)
+        zhihu_client = Zhihu.ZhihuClient(self.session, self.logger)
         if zhihu_client.is_login:
             print '已登录 \n'
         else:
@@ -46,7 +46,8 @@ class zhihu_crawler:
             zhihu_client.login(account, password)
 
         if zhihu_client.is_login:
-            self.crawl_activities(zhihu_client)
+            # self.crawl_activities(zhihu_client)
+            self.crawl_collection(zhihu_client)
 
 
         #####爬取用户动态#######
@@ -280,7 +281,7 @@ class zhihu_crawler:
 
             query_value = [
                 voteup_article_content['user_link'],
-                voteup_article_content['article_title'],
+                ''.join(voteup_article_content['article_title']).encode('utf-8').strip(),
                 voteup_article_content['article_url_token'],
                 voteup_article_content['article_id'],
                 ''.join(voteup_article_content['article_content']).encode('utf-8').strip(),
@@ -289,7 +290,14 @@ class zhihu_crawler:
 
             self.cursor.execute(
                 voteup_article_query,
-                query_value
+                [
+                    voteup_article_content['user_link'],
+                    ''.join(voteup_article_content['article_title']).encode('utf-8').strip(),
+                    voteup_article_content['article_url_token'],
+                    voteup_article_content['article_id'],
+                    ''.join(voteup_article_content['article_content']).encode('utf-8').strip(),
+                    voteup_article_content['created_time'],
+                ]
             )
 
             self.logger.info('save voteup article '+
@@ -355,8 +363,101 @@ class zhihu_crawler:
                          'time : '+str(comment['createdTime']))
         return query_value
 
+    def crawl_collection(self, zhihu_client):
+        '''爬取收藏夹内容'''
+
+        activities_result_set = list()
+        crawl_times = 0
+        pages = 1
+        while True:
+            try:
+                response = zhihu_client.get_collection_activites(61913303, pages)
+                pages = pages + 1
+                soup = BeautifulSoup(response, 'html.parser')
+                activities_result_set = zhihu_client.parse_collection_activites_content(soup)
+            except requests.exceptions.ConnectionError:
+                self.logger.exception('connection refused')
+                print 'Catch collection activities connection refused, waiting for 120s......'
+                time.sleep(120)
+                continue
+            except ValueError:
+                self.logger.exception('Catch activities ValueError'+
+                                      ' maybe No JSON object could be decoded')
+                print 'Get collection activities error, waiting for 1200s, and then break......'
+                time.sleep(1200)
+                break
+            except:
+                self.logger.exception('Catch activities error')
+                print 'Get collection activities error, waiting for 1200s, and then break......'
+                time.sleep(1200)
+                break
+
+
+            for collection_activity in activities_result_set:
+                self.logger.info('\n 爬取了一个回答 \n')
+                try:
+                    #判断是否在数据库中已经存在
+                    check_query = "SELECT * FROM wheelbrother_collectionanswer WHERE answer_id=%s"
+                    self.cursor.execute(check_query, [collection_activity['answer_id']])
+                    check_model = self.cursor.fechall()
+                    if check_model:
+                        self.logger.info('收藏夹的问题已经在数据库中\n')
+                        return
+                except:
+                    pass
+
+                collection_answer_query = (
+                    "INSERT INTO wheelbrother_collectionanswer"+
+                    "(question_link,"+
+                    "answer_id,"+
+                    "answer_title,"+
+                    "answer_content,"+
+                    "author_name,"+
+                    "author_link,"+
+                    "answer_comment_id)"
+                    " VALUES(%s,%s,%s,%s,%s,%s,%s)"
+                )
+
+                collection_answer_value = [
+                    collection_activity['question_link'],
+                    collection_activity['answer_id'],
+                    ''.join(collection_activity['answer_title']).encode('utf-8').strip(),
+                    ''.join(collection_activity['answer_content']).encode('utf-8').strip(),
+                    ''.join(collection_activity['author_name']).encode('utf-8').strip(),
+                    collection_activity['author_link'],
+                    collection_activity['answer_comment_id'],
+                ]
+
+                print collection_activity
+
+                self.cursor.execute(
+                    collection_answer_query,
+                    collection_answer_value
+                )
+
+                self.logger.info('save collection answer '+
+                                 collection_activity['answer_title']+' \n'+
+                                 'answer_id : '+str(collection_activity['answer_id']))
+
+            crawl_times = crawl_times + 1
+            if crawl_times == 10:
+                self.logger.info('crawl collection activities 10 times, sleep 60s...')
+                time.sleep(60)
+            elif crawl_times == 20:
+                self.logger.info('crawl collection activities 20 times, sleep 80s...')
+                time.sleep(80)
+            elif crawl_times == 30:
+                self.logger.info('crawl collection activities 30 times, sleep 1200s...')
+                crawl_times = 0
+                time.sleep(1200)
+            else:
+                self.logger.info('crawl collection activities, waiting for 20s...')
+                time.sleep(20)
+
+
 if __name__ == "__main__":
-    my_zhihu_crawler = zhihu_crawler(CrawlerSession())
+    session = CrawlerSession()
+    my_zhihu_crawler = zhihu_crawler(session.get_session())
     while True:
         my_zhihu_crawler.run()
         time.sleep(1200)

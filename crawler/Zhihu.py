@@ -1,11 +1,10 @@
 #coding=utf-8
-"""crawl zhi hu website """
+""" zhihu website crawler API """
 import re
 import time
 import json
 import os
 import requests
-from bs4 import BeautifulSoup
 from PIL import Image
 
 
@@ -29,9 +28,10 @@ HEADERS = {
 class ZhihuClient(object):
     '''知乎爬虫接口'''
 
-    def __init__(self, session, logger):
+    def __init__(self, session, logger=None):
         self.session = session
-        self.logger = logger
+        if logger:
+            self.logger = logger
 
     def login(self, account, password):
         """登录知乎"""
@@ -181,20 +181,28 @@ class ZhihuClient(object):
                 verify=False
                 )
         except requests.exceptions.ConnectionError:
-            self.logger.exception('Get comment connection refused')
+            if self.logger:
+                self.logger.exception('Get comment connection refused')
             time.sleep(40)
             return
         except:
-            self.logger.exception('Get comment error')
+            if self.logger:
+                self.logger.exception('Get comment error')
             time.sleep(40)
             return
 
-        comments_json_result = json.loads(comments.text)
-        if len(comments_json_result['data']) < 1:
+        try:
+            comments_json_result = json.loads(comments.text)
+            if len(comments_json_result['data']) < 1:
+                return
+
+            return comments_json_result
+        except ValueError:
+            if self.logger:
+                self.logger.exception('Myabe No JSON object could be decoded')
             return
 
 
-        return comments_json_result
 
     def get_follow_question(self, activity):
         '''
@@ -267,3 +275,47 @@ class ZhihuClient(object):
         }
 
         return voteup_article_content
+
+    def get_collection_activites(self, collection_id, page_num):
+        '''
+            获取收藏夹的内容
+        '''
+        collection_url = ZHIHU_URL + '/collection/'+str(collection_id)+'/?page='+str(page_num)
+        response = self.session.get(
+            collection_url,
+            headers=HEADERS,
+            verify=False
+        )
+
+        return response.text
+
+    def parse_collection_activites_content(self, content):
+        '''
+            解析收藏夹的内容
+        '''
+        activities_result_set = list()
+        activites = content.find_all('div', class_='zm-item')
+        for activity in activites:
+            activity_result_set = {}
+            answer_title = activity.find('h2', class_='zm-item-title').find('a').string
+            question_link = activity.find('h2', class_='zm-item-title').find('a').get('href')
+            try:
+                author_name = activity.find('a', class_='author-link').string
+                author_link = activity.find('a', class_='author-link').get('href')
+            except AttributeError:
+                author_name = 'anonymity'
+                author_link = ZHIHU_URL
+
+            answer_content = activity.find('textarea', class_='content').string
+            answer_comment_id = activity.find('div', class_='zm-item-answer ').get('data-aid')
+            answer_id = activity.find('div', class_='zm-item-answer ').get('data-atoken')
+            activity_result_set['answer_title'] = answer_title
+            activity_result_set['question_link'] = question_link
+            activity_result_set['author_name'] = author_name
+            activity_result_set['author_link'] = author_link
+            activity_result_set['answer_content'] = answer_content
+            activity_result_set['answer_comment_id'] = answer_comment_id
+            activity_result_set['answer_id'] = answer_id
+            activities_result_set.append(activity_result_set)
+
+        return activities_result_set
