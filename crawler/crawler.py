@@ -148,6 +148,9 @@ class zhihu_crawler:
                     question_content['answer_data_time'],
                 ]
             )
+
+            self.connection.commit()
+            
             self.logger.info('save voteup answer successful '+
                              question_content['answer_content']+'\n'+
                              'time : '+str(question_content['answer_data_time']))
@@ -188,6 +191,8 @@ class zhihu_crawler:
                 follow_question_query,
                 query_value
             )
+
+            self.connection.commit()
 
             self.logger.info('save follow question '+
                              follow_question_content['question_title'])
@@ -231,6 +236,8 @@ class zhihu_crawler:
                 answer_question_query,
                 query_value
             )
+
+            self.connection.commit()
 
             self.logger.info('save answer question '+
                              answer_question_content['question_title']+' \n'+
@@ -300,6 +307,8 @@ class zhihu_crawler:
                 ]
             )
 
+            self.connection.commit()
+
             self.logger.info('save voteup article '+
                              voteup_article_content['article_title']+' \n'+
                              'time : '+str(voteup_article_content['created_time']))
@@ -357,6 +366,8 @@ class zhihu_crawler:
             voteup_comment_query,
             query_value
         )
+
+        self.connection.commit()
 
         self.logger.info('save voteup comment '+
                          ''.join(comment['content']).encode('utf-8').strip()+'/n'+
@@ -428,12 +439,13 @@ class zhihu_crawler:
                     collection_activity['answer_comment_id'],
                 ]
 
-                print collection_activity
 
                 self.cursor.execute(
                     collection_answer_query,
                     collection_answer_value
                 )
+
+                self.connection.commit()
 
                 self.logger.info('save collection answer '+
                                  collection_activity['answer_title']+' \n'+

@@ -307,8 +307,13 @@ class ZhihuClient(object):
                 author_link = ZHIHU_URL
 
             answer_content = activity.find('textarea', class_='content').string
-            answer_comment_id = activity.find('div', class_='zm-item-answer ').get('data-aid')
-            answer_id = activity.find('div', class_='zm-item-answer ').get('data-atoken')
+            try:
+                answer_comment_id = activity.find('div', class_='zm-item-answer').get('data-aid')
+                answer_id = activity.find('div', class_='zm-item-answer').get('data-atoken')
+            except AttributeError:
+                answer_comment_id = '0'
+                answer_id = '0'
+
             activity_result_set['answer_title'] = answer_title
             activity_result_set['question_link'] = question_link
             activity_result_set['author_name'] = author_name
