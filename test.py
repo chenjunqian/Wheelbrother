@@ -1,6 +1,6 @@
 #coding=utf-8
 
-from BuildTrainingSet import TrainingData
+from bayes import naive_bayesian
 from crawler import Zhihu
 import logging
 from crawler.session import CrawlerSession
@@ -11,5 +11,5 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 if __name__ == '__main__':
-    test_training_data = TrainingData()
+    test_training_data = naive_bayesian()
     test_training_data.get_high_frequency_word()
