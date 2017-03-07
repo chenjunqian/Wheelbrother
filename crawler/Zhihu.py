@@ -33,11 +33,15 @@ class ZhihuClient(object):
         if logger:
             self.logger = logger
 
+        #知乎改版后，POST请求需要加X-Xsrftoken，不然会出现403
+        self.xsrf_token = self.get_xsrf()
+
     def login(self, account, password):
         """登录知乎"""
         post_url = 'https://www.zhihu.com/login/phone_num'
+
         post_data = {
-            '_xsrf':self.get_xsrf(),
+            '_xsrf':self.xsrf_token,
             'password':password,
             'remember_me': 'true',
             'email': account,
@@ -117,12 +121,16 @@ class ZhihuClient(object):
             'start':start,
         }
 
+        HEADERS['X-Xsrftoken'] = self.xsrf_token
+
         response = self.session.post(
             api_url,
             params=query_data,
             headers=HEADERS,
             verify=False
         )
+
+        print HEADERS
 
         return response.text
 

@@ -39,15 +39,15 @@ class zhihu_crawler:
 
         zhihu_client = Zhihu.ZhihuClient(self.session, self.logger)
         if zhihu_client.is_login():
-            self.crawl_collection(zhihu_client)
-            # self.crawl_activities(zhihu_client)
+            # self.crawl_collection(zhihu_client)
+            self.crawl_activities(zhihu_client)
         else:
             account = input('输入账号 \n > ')
             password = getpass("请输入登录密码: ")
             zhihu_client.login(account, password)
             if zhihu_client.is_login():
-                self.crawl_collection(zhihu_client)
-                # self.crawl_activities(zhihu_client)
+                # self.crawl_collection(zhihu_client)
+                self.crawl_activities(zhihu_client)
 
 
 
