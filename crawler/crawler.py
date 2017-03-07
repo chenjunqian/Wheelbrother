@@ -38,16 +38,17 @@ class zhihu_crawler:
             pass
 
         zhihu_client = Zhihu.ZhihuClient(self.session, self.logger)
-        if zhihu_client.is_login:
-            print '已登录 \n'
+        if zhihu_client.is_login():
+            self.crawl_collection(zhihu_client)
+            # self.crawl_activities(zhihu_client)
         else:
             account = input('输入账号 \n > ')
             password = getpass("请输入登录密码: ")
             zhihu_client.login(account, password)
+            if zhihu_client.is_login():
+                self.crawl_collection(zhihu_client)
+                # self.crawl_activities(zhihu_client)
 
-        if zhihu_client.is_login:
-            # self.crawl_activities(zhihu_client)
-            self.crawl_collection(zhihu_client)
 
 
         #####爬取用户动态#######
@@ -110,19 +111,18 @@ class zhihu_crawler:
         '''根据不同的标签来判断用户动态的类型'''
         if activity.attrs['data-type-detail'] == 'member_voteup_answer':
             #赞同了回答
-            self.logger.info('\n赞同了回答 \n')
             question_content = zhihu_client.get_voteup_answer_content(activity)
 
             try:
                 #判断是否在数据库中已经存在
                 check_query = "SELECT * FROM wheelbrother_voteupanswer WHERE answer_id=%s"
                 self.cursor.execute(check_query, [question_content['answer_id']])
-                check_model = self.cursor.fechall()
-                if check_model:
+                check_model = self.cursor.fetchall()
+                if len(check_model) > 0:
                     self.logger.info('赞同的答案已经在数据库中')
                     return
             except:
-                pass
+                self.logger.exception('store wheelbrother_voteupanswer error')
 
             voteup_answer_query = ("INSERT INTO wheelbrother_voteupanswer"+
                                    "(user_link,"+
@@ -150,7 +150,8 @@ class zhihu_crawler:
             )
 
             self.connection.commit()
-            
+
+            self.logger.info('\n赞同了回答 \n')
             self.logger.info('save voteup answer successful '+
                              question_content['answer_content']+'\n'+
                              'time : '+str(question_content['answer_data_time']))
@@ -169,7 +170,6 @@ class zhihu_crawler:
 
         if activity.attrs['data-type-detail'] == 'member_follow_question':
             #关注了问题
-            self.logger.info('\n 关注了问题 \n')
             follow_question_content = zhihu_client.get_follow_question(activity)
 
             query_value = [
@@ -194,23 +194,23 @@ class zhihu_crawler:
 
             self.connection.commit()
 
+            self.logger.info('\n 关注了问题 \n')
             self.logger.info('save follow question '+
                              follow_question_content['question_title'])
 
         if activity.attrs['data-type-detail'] == 'member_answer_question':
             #回答了问题
-            self.logger.info('\n回答了问题 \n')
             answer_question_content = zhihu_client.get_member_answer_question(activity)
             try:
                 #判断是否在数据库中已经存在
                 check_query = "SELECT * FROM wheelbrother_answerquestion WHERE answer_id=%s"
                 self.cursor.execute(check_query, [answer_question_content['answer_id']])
-                check_model = self.cursor.fechall()
-                if check_model:
+                check_model = self.cursor.fetchall()
+                if len(check_model) > 0:
                     self.logger.info('回答的问题已经在数据库中\n')
                     return
             except:
-                pass
+                self.logger.exception('store wheelbrother_answerquestion error')
 
             answer_question_query = (
                 "INSERT INTO wheelbrother_answerquestion"+
@@ -239,6 +239,7 @@ class zhihu_crawler:
 
             self.connection.commit()
 
+            self.logger.info('\n回答了问题 \n')
             self.logger.info('save answer question '+
                              answer_question_content['question_title']+' \n'+
                              'time : '+str(answer_question_content['created_time']))
@@ -260,19 +261,18 @@ class zhihu_crawler:
 
         if activity.attrs['data-type-detail'] == 'member_voteup_article':
             #赞同了文章
-            self.logger.info('\n赞同了文章 \n')
             voteup_article_content = zhihu_client.get_member_voteup_article(activity)
 
             try:
                 #判断是否在数据库中已经存在
                 check_query = "SELECT * FROM wheelbrother_voteuparticle WHERE article_url_token=%s"
                 self.cursor.execute(check_query, [voteup_article_content['article_url_token']])
-                check_model = self.cursor.fechall()
-                if check_model:
+                check_model = self.cursor.fetchall()
+                if len(check_model) > 0:
                     self.logger.info('赞同的文章已经在数据库中 \n')
                     return
             except:
-                pass
+                self.logger.exception('store wheelbrother_voteuparticle error')
 
 
             voteup_article_query = (
@@ -309,6 +309,7 @@ class zhihu_crawler:
 
             self.connection.commit()
 
+            self.logger.info('\n赞同了文章 \n')
             self.logger.info('save voteup article '+
                              voteup_article_content['article_title']+' \n'+
                              'time : '+str(voteup_article_content['created_time']))
@@ -327,12 +328,13 @@ class zhihu_crawler:
             #判断是否在数据库中已经存在
             check_query = "SELECT * FROM wheelbrother_voteupcomment WHERE comment_id=%s"
             self.cursor.execute(check_query, [comment['id']])
-            check_model = self.cursor.fechall()
-            if check_model:
+            check_model = self.cursor.fetchall()
+            if len(check_model) > 0:
                 self.logger.info('评论已经在数据库中')
                 return
         except:
-            pass
+            self.logger.exception('store wheelbrother_voteupcomment error')
+            return
 
         try:
             #有匿名的情况
@@ -405,17 +407,23 @@ class zhihu_crawler:
 
 
             for collection_activity in activities_result_set:
-                self.logger.info('\n 爬取了一个回答 \n')
+                is_store_in_database = False
                 try:
                     #判断是否在数据库中已经存在
                     check_query = "SELECT * FROM wheelbrother_collectionanswer WHERE answer_id=%s"
                     self.cursor.execute(check_query, [collection_activity['answer_id']])
-                    check_model = self.cursor.fechall()
-                    if check_model:
+                    check_model = self.cursor.fetchall()
+                    if len(check_model) > 0:
                         self.logger.info('收藏夹的问题已经在数据库中\n')
-                        return
+                        is_store_in_database = True
+                    else:
+                        is_store_in_database = False
                 except:
-                    pass
+                    self.logger.exception('store wheelbrother_collectionanswer error')
+
+
+                if is_store_in_database:
+                    continue
 
                 collection_answer_query = (
                     "INSERT INTO wheelbrother_collectionanswer"+
@@ -447,6 +455,7 @@ class zhihu_crawler:
 
                 self.connection.commit()
 
+                self.logger.info('\n 爬取了一个回答 \n')
                 self.logger.info('save collection answer '+
                                  collection_activity['answer_title']+' \n'+
                                  'answer_id : '+str(collection_activity['answer_id']))

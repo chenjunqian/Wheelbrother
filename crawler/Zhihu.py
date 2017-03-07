@@ -61,10 +61,17 @@ class ZhihuClient(object):
     def is_login(self):
         '''通过查看用户个人信息来判断是否已经登录'''
         url = "https://www.zhihu.com/settings/profile"
-        login_code = self.session.get(url, headers=HEADERS, allow_redirects=False).status_code
+        login_code = self.session.get(
+            url,
+            headers=HEADERS,
+            allow_redirects=False,
+            verify=False
+        ).status_code
         if login_code == 200:
+            print '已登录 \n'
             return True
         else:
+            print '没有登录 \n'
             return False
 
 
