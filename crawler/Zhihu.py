@@ -103,7 +103,7 @@ class ZhihuClient(object):
         '''_xsrf 是一个动态变化的参数'''
         index_url = 'https://www.zhihu.com'
         # 获取登录时需要用到的_xsrf
-        index_page = self.session.get(index_url, headers=HEADERS)
+        index_page = self.session.get(index_url, headers=HEADERS, verify=False)
         html = index_page.text
         pattern = r'name="_xsrf" value="(.*?)"'
         # 这里的_xsrf 返回的是一个list
@@ -129,8 +129,6 @@ class ZhihuClient(object):
             headers=HEADERS,
             verify=False
         )
-
-        print HEADERS
 
         return response.text
 
@@ -339,3 +337,54 @@ class ZhihuClient(object):
             activities_result_set.append(activity_result_set)
 
         return activities_result_set
+
+    def get_followees_list(self, username, off_set):
+        '''
+            获取用户关注列表
+        '''
+        get_data = {
+            'include':('data[*].answer_count,'+
+                       'articles_count,'+
+                       'gender,'+
+                       'follower_count,'+
+                       'is_followed,'+
+                       'is_following,'+
+                       'badge[?(type=best_answerer)].topics'),
+            'offset':off_set,
+            'limit':20
+        }
+
+        #主要是使用桌面的User-Agent来获取关注人会方便很多
+        HEADERS['User-Agent'] = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3)'+
+                                 ' AppleWebKit/537.36 (KHTML, like Gecko)'+
+                                 ' Chrome/56.0.2924.87 Safari/537.36')
+
+        url = 'https://www.zhihu.com/api/v4/members/'+str(username)+'/followees'
+
+        response = self.session.get(
+            url,
+            headers=HEADERS,
+            params=get_data
+        )
+
+        return response.text
+
+
+    def follow_member(self, username):
+        '''
+            关注用户
+        '''
+        #主要是使用桌面的User-Agent来获取关注人会方便很多
+        HEADERS['User-Agent'] = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3)'+
+                                 ' AppleWebKit/537.36 (KHTML, like Gecko)'+
+                                 ' Chrome/56.0.2924.87 Safari/537.36')
+
+        follow_url = 'https://www.zhihu.com/api/v4/members/'+str(username)+'/followers'
+        response = self.session.post(
+            follow_url,
+            headers=HEADERS,
+            verify=False
+        )
+
+        print response.text
+        return response.text

@@ -40,14 +40,16 @@ class zhihu_crawler:
         zhihu_client = Zhihu.ZhihuClient(self.session, self.logger)
         if zhihu_client.is_login():
             # self.crawl_collection(zhihu_client)
-            self.crawl_activities(zhihu_client)
+            # self.crawl_activities(zhihu_client)
+            self.crawl_followees(zhihu_client)
         else:
             account = input('输入账号 \n > ')
             password = getpass("请输入登录密码: ")
             zhihu_client.login(account, password)
             if zhihu_client.is_login():
                 # self.crawl_collection(zhihu_client)
-                self.crawl_activities(zhihu_client)
+                # self.crawl_activities(zhihu_client)
+                self.crawl_followees(zhihu_client)
 
 
 
@@ -55,7 +57,7 @@ class zhihu_crawler:
     def crawl_activities(self, zhihu_client):
         """爬取用户动态入口函数"""
         limit = 20
-        start = 0 #获取动态的时间戳 0 则是从现在开始获取
+        start = 1476855613 #获取动态的时间戳 0 则是从现在开始获取
 
         crawl_times = 0
         response = []
@@ -474,6 +476,63 @@ class zhihu_crawler:
             else:
                 self.logger.info('crawl collection activities, waiting for 20s...')
                 time.sleep(20)
+
+
+    def crawl_followees(self, zhihu_client):
+        '''
+            爬取关注列表
+        '''
+
+        followees_result_set = list()
+        crawl_times = 0
+        off_set = 0
+        while True:
+            try:
+                response = response = zhihu_client.get_followees_list('excited-vczh', off_set)
+                json_response = json.loads(response)
+            except requests.exceptions.ConnectionError:
+                self.logger.exception('connection refused')
+                print 'Catch  followees connection refused, waiting for 120s......'
+                time.sleep(120)
+                continue
+            except ValueError:
+                self.logger.exception('Catch followees ValueError'+
+                                      ' maybe No JSON object could be decoded')
+                print 'Get  followees error, waiting for 1200s, and then break......'
+                time.sleep(1200)
+                break
+            except:
+                self.logger.exception('Catch followees error')
+                print 'Get  followees error, waiting for 1200s, and then break......'
+                time.sleep(1200)
+                break
+
+            off_set = off_set + 20
+            followees_result_set = json_response['data']
+
+            for followees in followees_result_set:
+                if not followees['is_following']:
+                    time.sleep(20)
+                    response = zhihu_client.follow_member(followees['url_token'])
+                    self.logger.info('关注用户 : '+''.join(followees['name']).encode('utf-8'))
+                else:
+                    self.logger.info('name '+''.join(followees['name']).encode('utf-8')+' 已关注')
+
+            crawl_times = crawl_times + 1
+            if crawl_times == 10:
+                self.logger.info('crawl followees 10 times, sleep 60s...')
+                time.sleep(60)
+            elif crawl_times == 20:
+                self.logger.info('crawl followees 20 times, sleep 80s...')
+                time.sleep(80)
+            elif crawl_times == 30:
+                self.logger.info('crawl followees 30 times, sleep 1200s...')
+                crawl_times = 0
+                time.sleep(1200)
+            else:
+                self.logger.info('crawl followees activities, waiting for 20s...')
+                time.sleep(20)
+
 
 
 if __name__ == "__main__":
