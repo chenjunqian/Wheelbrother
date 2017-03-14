@@ -69,20 +69,26 @@ class naive_bayesian(object):
             json.dump(json_dict, outfile, ensure_ascii=False, indent=4)
 
 
+    def load_data_set(self):
+        '''
+            Load data from database which crawled
+        '''
+        pass
+
 
     def set_of_word_to_vector(self, vocab_list, input_set):
         '''
             Create a vector which all the element are 0,
             and change the element to one which contain high frequency word
         '''
-        returnector = [0]*len(input_set)
+        return_vector = [0]*len(input_set)
         for word in input_set:
             if word in vocab_list:
-                returnector[input_set.index(word)] = 1
+                return_vector[input_set.index(word)] = 1
             else:
                 print "the word : %s is not in my vocabulary ! " % word
 
-        return returnector
+        return return_vector
 
     def train_naive_bayes(self, train_matrix, key_word_list):
         '''

@@ -2,12 +2,43 @@
 import time
 import json
 import Zhihu
-from session import CrawlerSession
+from multiprocessing import Pool
 from getpass import getpass
 import logging
 import MySQLdb
 import requests
 from bs4 import BeautifulSoup
+import cookielib
+import requests
+
+class CrawlerSession(object):
+    '''初始化全局参数'''
+    def __init__(self):
+        # 使用登录cookie信息
+        self.session = requests.session()
+        self.session.cookies = cookielib.LWPCookieJar(filename='cookies')
+        try:
+            self.session.cookies.load(ignore_discard=True)
+        except:
+            print "Cookie 未能加载"
+
+    @property
+    def cookies(self):
+        return self.session.cookies
+
+    @cookies.setter
+    def cookies(self, cookies):
+        self.session.cookies = cookies
+
+    @property
+    def session(self):
+        return self.session
+
+    @session.setter
+    def session(self, session):
+        self.session = session
+
+
 
 class zhihu_crawler:
 
@@ -30,8 +61,10 @@ class zhihu_crawler:
         )
         self.cursor = self.connection.cursor()
 
+        # self.process_pool = Pool(processes=3)
 
-    def run(self):
+
+    def main(self):
         try:
             input = raw_input
         except:
@@ -39,25 +72,25 @@ class zhihu_crawler:
 
         zhihu_client = Zhihu.ZhihuClient(self.session, self.logger)
         if zhihu_client.is_login():
-            # self.crawl_collection(zhihu_client)
-            # self.crawl_activities(zhihu_client)
-            self.crawl_followees(zhihu_client)
+            self.run(zhihu_client)
         else:
             account = input('输入账号 \n > ')
             password = getpass("请输入登录密码: ")
             zhihu_client.login(account, password)
             if zhihu_client.is_login():
-                # self.crawl_collection(zhihu_client)
-                # self.crawl_activities(zhihu_client)
-                self.crawl_followees(zhihu_client)
+                self.run(zhihu_client)
 
-
+    def run(self, zhihu_client):
+        # self.process_pool.apply_async(self.crawl_collection, (zhihu_client,))
+        # self.process_pool.apply_async(self.crawl_activities, (zhihu_client,))
+        # self.process_pool.apply_async(self.crawl_followees, (zhihu_client,))
+        self.crawl_activities(zhihu_client)
 
         #####爬取用户动态#######
     def crawl_activities(self, zhihu_client):
         """爬取用户动态入口函数"""
         limit = 20
-        start = 1476855613 #获取动态的时间戳 0 则是从现在开始获取
+        start = 1473035448 #获取动态的时间戳 0 则是从现在开始获取
 
         crawl_times = 0
         response = []
@@ -485,10 +518,10 @@ class zhihu_crawler:
 
         followees_result_set = list()
         crawl_times = 0
-        off_set = 0
+        off_set = 200
         while True:
             try:
-                response = response = zhihu_client.get_followees_list('excited-vczh', off_set)
+                response = zhihu_client.get_followees_list('excited-vczh', off_set)
                 json_response = json.loads(response)
             except requests.exceptions.ConnectionError:
                 self.logger.exception('connection refused')
@@ -513,7 +546,14 @@ class zhihu_crawler:
             for followees in followees_result_set:
                 if not followees['is_following']:
                     time.sleep(20)
-                    response = zhihu_client.follow_member(followees['url_token'])
+                    follow_response = zhihu_client.follow_member(followees['url_token'])
+                    json_follow_response = json.loads(follow_response)
+                    if json_follow_response.has_key['error']:
+                        self.logger.info('crawl too many times and too fast,'+
+                                         ' have a rest, sleep 1200s...')
+                        time.sleep(1200)
+                        zhihu_client.follow_member(followees['url_token'])
+
                     self.logger.info('关注用户 : '+''.join(followees['name']).encode('utf-8'))
                 else:
                     self.logger.info('name '+''.join(followees['name']).encode('utf-8')+' 已关注')
@@ -537,7 +577,7 @@ class zhihu_crawler:
 
 if __name__ == "__main__":
     session = CrawlerSession()
-    my_zhihu_crawler = zhihu_crawler(session.get_session())
+    my_zhihu_crawler = zhihu_crawler(session.session)
     while True:
-        my_zhihu_crawler.run()
+        my_zhihu_crawler.main()
         time.sleep(1200)
