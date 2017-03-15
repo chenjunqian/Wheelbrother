@@ -39,11 +39,11 @@ class naive_bayesian(object):
             Get the highest frequency of the word from the database
         '''
         activites = {}
-        activitiy_query = "SELECT * FROM wheelbrother_voteupanswer ORDER BY id DESC"
+        activitiy_query = "SELECT answer_content FROM wheelbrother_voteupanswer"
         self.cursor.execute(activitiy_query)
         activites = self.cursor.fetchall()
 
-        activitiy_query = "SELECT * FROM wheelbrother_collectionanswer ORDER BY id DESC"
+        activitiy_query = "SELECT answer_content FROM wheelbrother_collectionanswer"
         self.cursor.execute(activitiy_query)
         voteup_activites = self.cursor.fetchall()
         print type(voteup_activites)
@@ -67,7 +67,7 @@ class naive_bayesian(object):
 
         word_count = Counter(word_list)
         json_dict = dict()
-        for item in word_count.most_common(2000):
+        for item in word_count.most_common(5000):
             json_dict[item[0]] = item[1]
 
         with open("key_word.json", "w") as outfile:
