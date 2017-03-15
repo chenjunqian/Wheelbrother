@@ -3,7 +3,6 @@
 from bayes import naive_bayesian
 from crawler import Zhihu
 import logging
-from crawler.session import CrawlerSession
 from bs4 import BeautifulSoup
 import sys
 

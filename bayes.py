@@ -39,22 +39,27 @@ class naive_bayesian(object):
             Get the highest frequency of the word from the database
         '''
         activites = {}
-        activitiy_query = "SELECT * FROM wheelbrother_collectionanswer ORDER BY id DESC"
+        activitiy_query = "SELECT * FROM wheelbrother_voteupanswer ORDER BY id DESC"
         self.cursor.execute(activitiy_query)
         activites = self.cursor.fetchall()
 
+        activitiy_query = "SELECT * FROM wheelbrother_collectionanswer ORDER BY id DESC"
+        self.cursor.execute(activitiy_query)
+        voteup_activites = self.cursor.fetchall()
+        print type(voteup_activites)
+        activites = activites + voteup_activites
         # target_index = 100
         word_list = list()
-        chinese_word_string = str()
-        activity_string = str()
+        chinese_word_string = list()
+        activity_string = list()
         for activity in activites:
-            activity_string = activity_string+activity['answer_content']+activity['answer_title']
+            activity_string.append(activity['answer_content'])
 
-        for item in activity_string:
+        for item in ''.join(activity_string):
             if self.is_chinese(item):
-                chinese_word_string = chinese_word_string+item
+                chinese_word_string.append(item)
 
-        seg_list = jieba.cut(chinese_word_string)
+        seg_list = jieba.cut(''.join(chinese_word_string))
 
         for item in seg_list:
             if len(item) >= 2:
@@ -62,18 +67,11 @@ class naive_bayesian(object):
 
         word_count = Counter(word_list)
         json_dict = dict()
-        for item in word_count.most_common(500):
+        for item in word_count.most_common(2000):
             json_dict[item[0]] = item[1]
 
         with open("key_word.json", "w") as outfile:
             json.dump(json_dict, outfile, ensure_ascii=False, indent=4)
-
-
-    def load_data_set(self):
-        '''
-            Load data from database which crawled
-        '''
-        pass
 
 
     def set_of_word_to_vector(self, vocab_list, input_set):
