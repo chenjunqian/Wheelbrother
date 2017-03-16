@@ -38,7 +38,6 @@ class naive_bayesian(object):
         '''
             Get the highest frequency of the word from the database
         '''
-        activites = {}
         activitiy_query = "SELECT answer_content FROM wheelbrother_voteupanswer"
         self.cursor.execute(activitiy_query)
         activites = self.cursor.fetchall()
@@ -46,9 +45,8 @@ class naive_bayesian(object):
         activitiy_query = "SELECT answer_content FROM wheelbrother_collectionanswer"
         self.cursor.execute(activitiy_query)
         voteup_activites = self.cursor.fetchall()
-        print type(voteup_activites)
         activites = activites + voteup_activites
-        # target_index = 100
+
         word_list = list()
         chinese_word_string = list()
         activity_string = list()
@@ -87,6 +85,57 @@ class naive_bayesian(object):
                 print "the word : %s is not in my vocabulary ! " % word
 
         return return_vector
+
+    def build_data_set(self):
+        '''
+            load data from database, split words and buil training set
+        '''
+        activitiy_query = "SELECT answer_content FROM wheelbrother_voteupanswer"
+        self.cursor.execute(activitiy_query)
+        voteup_activites = self.cursor.fetchall()
+
+        activitiy_query = "SELECT answer_content FROM wheelbrother_collectionanswer"
+        self.cursor.execute(activitiy_query)
+        collection_activites = self.cursor.fetchall()
+
+        # 0 represent normal activites, and 1 represent target activities
+        class_vector = [0]*len(voteup_activites) + [1]*len(collection_activites)
+
+        activities_list = list()
+        for item in voteup_activites:
+            voteup_activites_chinese_word_string = list()
+            for word in item['answer_content']:
+                if self.is_chinese(word):
+                    voteup_activites_chinese_word_string.append(word)
+
+            seg_list = jieba.cut(''.join(voteup_activites_chinese_word_string))
+            item_word_list = list()
+            for item in seg_list:
+                if len(item) >= 2:
+                    item_word_list.append(item)
+            activities_list.append(item_word_list)
+            print 'cut voteup activity item done !'
+
+        for item in collection_activites:
+            collection_activites_chinese_word_string = list()
+            for word in item['answer_content']:
+                if self.is_chinese(word):
+                    collection_activites_chinese_word_string.append(word)
+
+            seg_list = jieba.cut(''.join(collection_activites_chinese_word_string))
+            item_word_list = list()
+            for item in seg_list:
+                if len(item) >= 2:
+                    item_word_list.append(item)
+            activities_list.append(item_word_list)
+            print 'cut collection activity item done !'
+
+        with open('train_set.json', 'w') as json_file:
+            json_dict = dict()
+            json_dict['train_set'] = activities_list
+            json_dict['class_vector'] = class_vector
+            json.dump(json_dict, json_file, ensure_ascii=False, indent=4)
+        print 'build data set done !'
 
     def train_naive_bayes(self, train_matrix, key_word_list):
         '''
