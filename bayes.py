@@ -4,6 +4,7 @@ import jieba
 import json
 from collections import Counter
 import numpy
+import math
 import re
 import sys
 
@@ -65,8 +66,12 @@ class naive_bayesian(object):
 
         word_count = Counter(word_list)
         json_dict = dict()
+        key_word_list = list()
         for item in word_count.most_common(5000):
-            json_dict[item[0]] = item[1]
+            # json_dict[item[0]] = item[1]
+            key_word_list.append(item[0])
+
+        json_dict['key_word_list'] = key_word_list
 
         with open("key_word.json", "w") as outfile:
             json.dump(json_dict, outfile, ensure_ascii=False, indent=4)
@@ -137,6 +142,7 @@ class naive_bayesian(object):
             json.dump(json_dict, json_file, ensure_ascii=False, indent=4)
         print 'build data set done !'
 
+
     def train_naive_bayes(self, train_matrix, key_word_list):
         '''
             Training Naive Bayesian Classifier
@@ -157,7 +163,7 @@ class naive_bayesian(object):
             else:
                 posibility_zero_num += train_matrix[i]
                 posibility_zero_denom += numpy.sum(train_matrix[i])
-        posibility_one_vector = posibility_one_num/posibility_one_denom
-        posibility_zero_vector = posibility_zero_num/posibility_one_denom
+        posibility_one_vector = numpy.log10(posibility_one_num/posibility_one_denom)
+        posibility_zero_vector = numpy.log10(posibility_zero_num/posibility_one_denom)
         return posibility_zero_vector, posibility_one_vector, posibility_of_target
 
