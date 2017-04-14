@@ -11,34 +11,6 @@ from bs4 import BeautifulSoup
 import cookielib
 import requests
 
-class CrawlerSession(object):
-    '''初始化全局参数'''
-    def __init__(self):
-        # 使用登录cookie信息
-        self.session = requests.session()
-        self.session.cookies = cookielib.LWPCookieJar(filename='cookies')
-        try:
-            self.session.cookies.load(ignore_discard=True)
-        except:
-            print "Cookie 未能加载"
-
-    @property
-    def cookies(self):
-        return self.session.cookies
-
-    @cookies.setter
-    def cookies(self, cookies):
-        self.session.cookies = cookies
-
-    @property
-    def session(self):
-        return self.session
-
-    @session.setter
-    def session(self, session):
-        self.session = session
-
-
 
 class zhihu_crawler:
 
@@ -576,8 +548,7 @@ class zhihu_crawler:
 
 
 if __name__ == "__main__":
-    session = CrawlerSession()
-    my_zhihu_crawler = zhihu_crawler(session.session)
+    my_zhihu_crawler = zhihu_crawler()
     while True:
         my_zhihu_crawler.main()
         time.sleep(1200)

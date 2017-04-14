@@ -5,6 +5,7 @@ import time
 import json
 import os
 import requests
+import cookielib
 from PIL import Image
 
 
@@ -28,8 +29,15 @@ HEADERS = {
 class ZhihuClient(object):
     '''知乎爬虫接口'''
 
-    def __init__(self, session, logger=None):
-        self.session = session
+    def __init__(self, logger=None):
+        # 使用登录cookie信息
+        self.session = requests.session()
+        self.session.cookies = cookielib.LWPCookieJar(filename='cookies')
+        try:
+            self.session.cookies.load(ignore_discard=True)
+        except:
+            print "Cookie 未能加载"
+
         if logger:
             self.logger = logger
 
