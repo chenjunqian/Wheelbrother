@@ -82,7 +82,12 @@ class naive_bayesian(object):
             Create a vector which all the element are 0,
             and change the element to one which contain high frequency word
         '''
-        return_vector = [0]*len(input_set)
+
+        # alignment of data
+        return_vector = [0]*500
+        if len(input_set) > 500:
+            input_set = input_set[:500]
+
         for word in input_set:
             if word in vocab_list:
                 return_vector[input_set.index(word)] = 1
@@ -167,3 +172,10 @@ class naive_bayesian(object):
         posibility_zero_vector = numpy.log10(posibility_zero_num/posibility_one_denom)
         return posibility_zero_vector, posibility_one_vector, posibility_of_target
 
+    def classify_naive_bayes(self, vec_of_classify, p_zero_vector, p_one_vector, p_of_target):
+        p_one = numpy.sum(vec_of_classify*p_one_vector) + numpy.log10(p_of_target)
+        p_zero = numpy.sum(vec_of_classify*p_zero_vector) + numpy.log10(1.0 - p_of_target)
+        if p_one > p_zero:
+            return 1
+        else:
+            return 0
