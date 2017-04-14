@@ -14,8 +14,7 @@ import requests
 
 class zhihu_crawler:
 
-    def __init__(self, session):
-        self.session = session
+    def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         handle = logging.FileHandler('ZhihuCrawl.log')
@@ -42,7 +41,7 @@ class zhihu_crawler:
         except:
             pass
 
-        zhihu_client = Zhihu.ZhihuClient(self.session, self.logger)
+        zhihu_client = Zhihu.ZhihuClient(self.logger)
         if zhihu_client.is_login():
             self.run(zhihu_client)
         else:
