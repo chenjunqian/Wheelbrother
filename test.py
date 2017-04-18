@@ -11,7 +11,7 @@ import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
-if __name__ == '__main__':
+def test_navie_bayes():
     test_training_data = naive_bayesian()
     # test_training_data.get_high_frequency_word()
     # test_training_data.build_data_set()
@@ -39,3 +39,8 @@ if __name__ == '__main__':
     print 'p1v : '+ str(p1v)
     print 'pAb : '+ str(pAb)
 
+def get_my_activities():
+    pass
+
+if __name__ == '__main__':
+    pass

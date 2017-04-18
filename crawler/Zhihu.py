@@ -19,9 +19,9 @@ HEADERS = {
                   ' Chrome/57.0.2950.4 Mobile Safari/537.36',
     'Accept': 'application/json, text/plain, */*',
     'Host': "www.zhihu.com",
-    'Origin': "http://www.zhihu.com",
+    'Origin': "https://www.zhihu.com",
     'Pragma': "no-cache",
-    'Referer': "http://www.zhihu.com/",
+    'Referer': "https://www.zhihu.com/",
     'X-Requested-With': "XMLHttpRequest"
 }
 
@@ -52,33 +52,32 @@ class ZhihuClient(object):
             '_xsrf':self.xsrf_token,
             'password':password,
             'remember_me': 'true',
-            'email': account,
+            'phone_num': account,
         }
 
-        try:
-            login_page = self.session.post(post_url, data=post_data, headers=HEADERS)
-            login_code = login_page.text
-            print login_page.status_code
-            print login_code
-        except:
-            # 需要输入验证码后才能登录成功
-            postdata = {}
-            postdata["captcha"] = self.get_captcha()
-            login_page = self.session.post(post_url, data=postdata, headers=HEADERS)
-            login_code = eval(login_page.text)
-            print login_code['msg']
+        # 需要输入验证码后才能登录成功
+        post_data["captcha"] = self.get_captcha()
+        login_page = self.session.post(post_url, data=post_data, headers=HEADERS)
+        login_code = login_page.text
+        print login_page.status_code
+        print login_code
 
         self.session.cookies.save()
 
     def is_login(self):
         '''通过查看用户个人信息来判断是否已经登录'''
         url = "https://www.zhihu.com/settings/profile"
-        login_code = self.session.get(
+        login_response = self.session.get(
             url,
             headers=HEADERS,
             allow_redirects=False,
             verify=False
-        ).status_code
+        )
+
+        login_code = login_response.status_code
+
+        # print 'login_response : '+login_response.text
+
         if login_code == 200:
             print '已登录 \n'
             return True
@@ -395,4 +394,48 @@ class ZhihuClient(object):
         )
 
         print response.text
+        return response.text
+
+    def get_my_activities(self, start, offset):
+        '''
+            获取自己主页的feed
+
+            start: 从主页feed中第几个开始往后获取动态
+
+            offset: 从start后获取动态的数量
+        '''
+
+        feed_url = 'https://www.zhihu.com/node/TopStory2FeedList'
+
+        post_data = ('params=%7B%22offset%22%3A{0}'+
+                     '%2C%22start%22%3A%22{1}%22'+
+                     '%7D&method=next').format(offset, start)
+
+
+        headers = {
+            'Accept':'*/*',
+            'Accept-Encoding':'gzip, deflate, br',
+            'Accept-Language':'en-US,en;q=0.8,zh-CN;q=0.6,zh;q=0.4,zh-TW;q=0.2,ja;q=0.2,ru;q=0.2',
+            'Connection':'keep-alive',
+            'Content-Length':'66',
+            'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
+            'Origin':'https://www.zhihu.com',
+            'Referer':'https://www.zhihu.com/',
+            'User-Agent': 'Mozilla/5.0 (Linux;'+
+                          'Android 6.0; Nexus 5 Build/MRA58N) '+
+                          'AppleWebKit/537.36 (KHTML, like Gecko)'+
+                          'Chrome/56.0.2924.87 Mobile Safari/537.36',
+            'X-Requested-With':'XMLHttpRequest',
+            'X-Xsrftoken':self.xsrf_token
+        }
+
+        HEADERS['Xsrftoken'] = self.xsrf_token
+
+
+        response = self.session.post(
+            feed_url,
+            data=post_data,
+            headers=headers,
+        )
+
         return response.text

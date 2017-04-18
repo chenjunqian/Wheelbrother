@@ -2,6 +2,7 @@
 import time
 import json
 import Zhihu
+import re
 from multiprocessing import Pool
 from getpass import getpass
 import logging
@@ -52,14 +53,15 @@ class zhihu_crawler:
                 self.run(zhihu_client)
 
     def run(self, zhihu_client):
-        # self.process_pool.apply_async(self.crawl_collection, (zhihu_client,))
-        # self.process_pool.apply_async(self.crawl_activities, (zhihu_client,))
-        # self.process_pool.apply_async(self.crawl_followees, (zhihu_client,))
-        self.crawl_activities(zhihu_client)
+        '''
+            统一请求函数格式
+        '''
+        # self.crawl_activities(zhihu_client)
+        self.crawl_my_feed(zhihu_client)
 
         #####爬取用户动态#######
     def crawl_activities(self, zhihu_client):
-        """爬取用户动态入口函数"""
+        """爬取用户动态"""
         limit = 20
         start = 1473035448 #获取动态的时间戳 0 则是从现在开始获取
 
@@ -112,6 +114,18 @@ class zhihu_crawler:
             else:
                 self.logger.info('crawl activities, waiting for 20s...')
                 time.sleep(20)
+
+        def parse_response(response):
+            limit = json_response['msg'][0]
+            soup = BeautifulSoup(json_response['msg'][1], 'html.parser')
+            activities = soup.find_all('div', class_='zm-profile-section-item zm-item clearfix')
+            if len(activities) > 0:
+                start = activities[-1]['data-time']
+                self.logger.info('start time : '+str(start))
+
+            for activity in activities:
+                self.parse_activitis(zhihu_client, activity)
+
 
     def parse_activitis(self, zhihu_client, activity):
         '''根据不同的标签来判断用户动态的类型'''
@@ -545,6 +559,223 @@ class zhihu_crawler:
                 time.sleep(20)
 
 
+    def crawl_my_feed(self, zhihu_client):
+        '''
+            爬取主页动态
+        '''
+        crawl_times = 0
+        start = 0
+        offset = 10
+        while True:
+            try:
+                response = zhihu_client.get_my_activities(start, offset)
+                json_response = json.loads(response)
+            except requests.exceptions.ConnectionError:
+                self.logger.exception('connection refused')
+                print 'Catch  feed connection refused, waiting for 120s......'
+                time.sleep(120)
+                continue
+            except ValueError:
+                self.logger.exception('Catch feed ValueError'+
+                                      ' maybe No JSON object could be decoded')
+                print 'Get  feed error, waiting for 1200s, and then break......'
+                time.sleep(1200)
+                break
+            except:
+                self.logger.exception('Catch feed error')
+                print 'Get  feed error, waiting for 1200s, and then break......'
+                time.sleep(1200)
+                break
+
+            feeds = json_response['msg']
+            start = start + offset
+            for item in feeds:
+                try:
+                    self.parse_feed_activiteis(zhihu_client, item)
+                except AttributeError:
+                    if self.logger:
+                        self.logger.exception(AttributeError.message)
+
+            crawl_times = crawl_times + 1
+            if crawl_times == 10:
+                self.logger.info('crawl feed 10 times, sleep 60s...')
+                time.sleep(60)
+            elif crawl_times == 20:
+                self.logger.info('crawl feed 20 times, sleep 80s...')
+                time.sleep(80)
+            elif crawl_times == 30:
+                self.logger.info('crawl feed 30 times, sleep 1200s...')
+                crawl_times = 0
+                time.sleep(1200)
+            else:
+                self.logger.info('crawl feed activities, waiting for 20s...')
+                time.sleep(20)
+
+    def parse_feed_activiteis(self, zhihu_client, activiteis):
+        '''根据不同的标签来判断feed动态的类型'''
+        soup = BeautifulSoup(activiteis, 'html.parser')
+        data_meta = json.loads(soup.find(
+            'meta',
+            itemprop='ZReactor'
+        ).get('data-meta'))
+        if data_meta['source_type'] == 'member_voteup_answer':
+
+            user_link = soup.find('a', class_='author-link').get('href')
+            username = soup.find('a', class_='author-link').string
+            answer_content = soup.find('textarea', class_='content').string
+
+            question_link = soup.find('a', class_='question_link').get('href')
+            pattern = r'(?<=question/).*?(?=/answer)'
+            question_id = re.findall(pattern, question_link)[0]
+
+            question_title = soup.find('h2', class_='feed-title').find('a').string
+            answer_id = soup.find('meta', itemprop='answer-url-token').get('content')
+            answer_data_time = soup.find('span', class_='time').get('data-timestamp')
+            answer_vote_count = data_meta['voteups']
+            answer_comment_id = soup.find('meta', itemprop='ZReactor').get('data-id')
+
+            try:
+                #判断是否在数据库中已经存在
+                check_query = "SELECT * FROM wheelbrother_feed_voteupanswer WHERE answer_id=%s"
+                self.cursor.execute(check_query, [answer_id])
+                check_model = self.cursor.fetchall()
+                if len(check_model) > 0:
+                    self.logger.info('feed中赞同的答案已经在数据库中')
+                    return
+            except Exception:
+                self.logger.exception(Exception.message)
+
+
+            feed_voteup_answer_query = (
+                "INSERT INTO wheelbrother_feed_voteupanswer"+
+                "(user_link,"+
+                "username,"+
+                "answer_content,"+
+                "question_id,"+
+                "question_title,"+
+                "answer_id,"+
+                "answer_data_time,"+
+                "answer_vote_count,"+
+                "answer_comment_id)"+
+                " VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+            )
+
+            self.cursor.execute(
+                feed_voteup_answer_query,
+                [
+                    user_link,
+                    ''.join(username).encode('utf-8').strip(),
+                    ''.join(answer_content).encode('utf-8').strip(),
+                    question_id,
+                    ''.join(question_title).encode('utf-8').strip(),
+                    answer_id,
+                    answer_data_time,
+                    answer_vote_count,
+                    answer_comment_id
+                ]
+            )
+
+            self.connection.commit()
+            self.logger.info('save feed member voteup answer')
+
+        if data_meta['source_type'] == 'member_follow_question':
+
+            question_link = soup.find('a', class_='question_link').get('href')
+            question_id = soup.find('meta', itemprop='question-url-token').get('content')
+            question_title = soup.find('h2', class_='feed-title').find('a').string
+
+            try:
+                #判断是否在数据库中已经存在
+                check_query = "SELECT * FROM wheelbrother_feed_followquestion WHERE question_id=%s"
+                self.cursor.execute(check_query, [question_id])
+                check_model = self.cursor.fetchall()
+                if len(check_model) > 0:
+                    self.logger.info('feed中关注的问题已经在数据库中')
+                    return
+            except Exception:
+                self.logger.exception(Exception.message)
+
+            query_value = [
+                question_id,
+                question_link,
+                ''.join(question_title).encode('utf-8').strip()
+            ]
+
+
+            member_follow_question_query = (
+                "INSERT INTO wheelbrother_feed_followquestion"+
+                "(question_id,"+
+                "question_link,"+
+                "question_title)"
+                " VALUES(%s,%s,%s)"
+            )
+
+            self.cursor.execute(
+                member_follow_question_query,
+                query_value
+            )
+
+            self.connection.commit()
+            self.logger.info('save feed follow question')
+
+        if data_meta['source_type'] == 'member_answer_question':
+
+            question_link = soup.find('a', class_='question_link').get('href')
+            pattern = r'(?<=question/).*?(?=/answer)'
+            question_id = re.findall(pattern, question_link)[0]
+
+            question_title = soup.find('h2', class_='feed-title').find('a').string
+            answer_content = soup.find('textarea', class_='content').string
+            answer_id = soup.find('meta', itemprop='answer-url-token').get('content')
+            created_time = soup.find('span', class_='time').get('data-timestamp')
+            answer_comment_id = soup.find('meta', itemprop='ZReactor').get('data-id')
+
+            try:
+                #判断是否在数据库中已经存在
+                check_query = "SELECT * FROM wheelbrother_feed_answerquestion WHERE answer_id=%s"
+                self.cursor.execute(check_query, [answer_id])
+                check_model = self.cursor.fetchall()
+                if len(check_model) > 0:
+                    self.logger.info('feed中回答的问题已经在数据库中')
+                    return
+            except Exception:
+                self.logger.exception(Exception.message)
+
+            query_value = [
+                question_id,
+                ''.join(question_title).encode('utf-8').strip(),
+                ''.join(answer_content).encode('utf-8').strip(),
+                answer_id,
+                created_time,
+                answer_comment_id
+            ]
+
+
+            member_answer_question_query = (
+                "INSERT INTO wheelbrother_feed_answerquestion"+
+                "(question_id,"+
+                "question_title,"+
+                "answer_content,"+
+                "answer_id,"+
+                "created_time,"+
+                "answer_comment_id)"
+                " VALUES(%s,%s,%s,%s,%s,%s)"
+            )
+
+            self.cursor.execute(
+                member_answer_question_query,
+                query_value
+            )
+
+            self.connection.commit()
+            self.logger.info('save feed member answer question')
+
+        if data_meta['source_type'] == 'member_follow_column':
+            pass
+        if data_meta['source_type'] == 'member_voteup_article':
+            pass
+        if data_meta['source_type'] == 'member_create_article':
+            pass
 
 if __name__ == "__main__":
     my_zhihu_crawler = zhihu_crawler()

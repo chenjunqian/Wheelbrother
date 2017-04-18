@@ -91,8 +91,8 @@ class naive_bayesian(object):
         for word in input_set:
             if word in vocab_list:
                 return_vector[input_set.index(word)] = 1
-            else:
-                print "the word : %s is not in my vocabulary ! " % word
+            # else:
+            #     print "the word : %s is not in my vocabulary ! " % word
 
         return return_vector
 
