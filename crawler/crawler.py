@@ -589,14 +589,16 @@ class zhihu_crawler:
 
             feeds = json_response['msg']
             start = start + offset
-            for item in feeds:
-                try:
-                    self.parse_feed_activiteis(zhihu_client, item)
-                except AttributeError:
-                    if self.logger:
-                        self.logger.exception(AttributeError.message)
-
             crawl_times = crawl_times + 1
+            self.logger.info('feed num : '+str(start))
+            for item in feeds:
+                self.parse_feed_activiteis(zhihu_client, item)
+
+
+            if start >= 1000:
+                #当爬取1000条数据后，从新开始爬
+                break
+
             if crawl_times == 10:
                 self.logger.info('crawl feed 10 times, sleep 60s...')
                 time.sleep(60)
@@ -614,10 +616,17 @@ class zhihu_crawler:
     def parse_feed_activiteis(self, zhihu_client, activiteis):
         '''根据不同的标签来判断feed动态的类型'''
         soup = BeautifulSoup(activiteis, 'html.parser')
-        data_meta = json.loads(soup.find(
-            'meta',
-            itemprop='ZReactor'
-        ).get('data-meta'))
+        data_meta = {}
+        try:
+            data_meta = json.loads(soup.find(
+                'meta',
+                itemprop='ZReactor'
+            ).get('data-meta'))
+        except AttributeError:
+            if self.logger:
+                self.logger.exception(AttributeError.message)
+            return
+
         if data_meta['source_type'] == 'member_voteup_answer':
 
             user_link = soup.find('a', class_='author-link').get('href')
@@ -640,7 +649,8 @@ class zhihu_crawler:
                 self.cursor.execute(check_query, [answer_id])
                 check_model = self.cursor.fetchall()
                 if len(check_model) > 0:
-                    self.logger.info('feed中赞同的答案已经在数据库中')
+                    self.logger.info('feed中赞同的答案 '+str(
+                        ''.join(question_title).encode('utf-8').strip())+' 已经在数据库中')
                     return
             except Exception:
                 self.logger.exception(Exception.message)
@@ -676,7 +686,8 @@ class zhihu_crawler:
             )
 
             self.connection.commit()
-            self.logger.info('save feed member voteup answer')
+            self.logger.info('save feed member voteup answer '+str(
+                ''.join(question_title).encode('utf-8').strip()))
 
         if data_meta['source_type'] == 'member_follow_question':
 
@@ -690,7 +701,8 @@ class zhihu_crawler:
                 self.cursor.execute(check_query, [question_id])
                 check_model = self.cursor.fetchall()
                 if len(check_model) > 0:
-                    self.logger.info('feed中关注的问题已经在数据库中')
+                    self.logger.info('feed中关注的问题 '+str(
+                        ''.join(question_title).encode('utf-8').strip())+' 已经在数据库中')
                     return
             except Exception:
                 self.logger.exception(Exception.message)
@@ -716,7 +728,8 @@ class zhihu_crawler:
             )
 
             self.connection.commit()
-            self.logger.info('save feed follow question')
+            self.logger.info('save feed follow question '+str(
+                ''.join(question_title).encode('utf-8').strip()))
 
         if data_meta['source_type'] == 'member_answer_question':
 
@@ -736,7 +749,8 @@ class zhihu_crawler:
                 self.cursor.execute(check_query, [answer_id])
                 check_model = self.cursor.fetchall()
                 if len(check_model) > 0:
-                    self.logger.info('feed中回答的问题已经在数据库中')
+                    self.logger.info('feed中回答的问题 '+str(
+                        ''.join(question_title).encode('utf-8').strip())+' 已经在数据库中')
                     return
             except Exception:
                 self.logger.exception(Exception.message)
@@ -768,7 +782,8 @@ class zhihu_crawler:
             )
 
             self.connection.commit()
-            self.logger.info('save feed member answer question')
+            self.logger.info('save feed member answer question '+str(
+                ''.join(question_title).encode('utf-8').strip()))
 
         if data_meta['source_type'] == 'member_follow_column':
             pass
@@ -781,4 +796,4 @@ if __name__ == "__main__":
     my_zhihu_crawler = zhihu_crawler()
     while True:
         my_zhihu_crawler.main()
-        time.sleep(1200)
+        time.sleep(1800)

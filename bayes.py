@@ -34,6 +34,15 @@ class naive_bayesian(object):
         else:
             return False
 
+    def chinese_filter_separator(self, string):
+        '''
+            过滤掉非中文的文字
+        '''
+        chinese_word_string = list()
+        for word in string:
+            if self.is_chinese(word):
+                chinese_word_string.append(word)
+        return ''.join(chinese_word_string)
 
     def get_high_frequency_word(self):
         '''
@@ -77,7 +86,7 @@ class naive_bayesian(object):
             json.dump(json_dict, outfile, ensure_ascii=False, indent=4)
 
 
-    def set_of_word_to_vector(self, vocab_list, input_set):
+    def set_of_word_to_vector(self, vocab_list, input_set, is_test_data=False):
         '''
             Create a vector which all the element are 0,
             and change the element to one which contain high frequency word
@@ -90,7 +99,7 @@ class naive_bayesian(object):
 
         for word in input_set:
             if word in vocab_list:
-                return_vector[input_set.index(word)] = 1
+                return_vector[input_set.index(word)] += 1
             # else:
             #     print "the word : %s is not in my vocabulary ! " % word
 
@@ -175,6 +184,7 @@ class naive_bayesian(object):
     def classify_naive_bayes(self, vec_of_classify, p_zero_vector, p_one_vector, p_of_target):
         p_one = numpy.sum(vec_of_classify*p_one_vector) + numpy.log10(p_of_target)
         p_zero = numpy.sum(vec_of_classify*p_zero_vector) + numpy.log10(1.0 - p_of_target)
+        # print 'p_one :'+str(p_one)+'  p_zero'+str(p_zero)
         if p_one > p_zero:
             return 1
         else:

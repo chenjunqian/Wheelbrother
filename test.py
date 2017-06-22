@@ -7,12 +7,14 @@ import pickle
 import json
 from bs4 import BeautifulSoup
 import sys
+import MySQLdb
+import numpy
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
 def test_navie_bayes():
-    test_training_data = naive_bayesian()
+    bayes_engine = naive_bayesian()
     # test_training_data.get_high_frequency_word()
     # test_training_data.build_data_set()
     train_set_dict = dict()
@@ -26,21 +28,53 @@ def test_navie_bayes():
 
     for item in train_set_dict['train_set']:
         vector_set.append(
-            test_training_data.set_of_word_to_vector(
+            bayes_engine.set_of_word_to_vector(
                 key_word_set_dict['key_word_list'],
-                item
+                item,
+                True
             )
         )
-    p0v, p1v, pAb = test_training_data.train_naive_bayes(
+    p0v, p1v, pAb = bayes_engine.train_naive_bayes(
         vector_set,
         train_set_dict['class_vector']
     )
-    print 'p0v : '+ str(p0v)
-    print 'p1v : '+ str(p1v)
-    print 'pAb : '+ str(pAb)
+
+    connection = MySQLdb.connect(
+        host='118.190.103.54',
+        user='root',
+        passwd='root',
+        db='mysite',
+        charset="utf8"
+    )
+    cursor = connection.cursor(cursorclass=MySQLdb.cursors.DictCursor)
+
+    feed_query = "SELECT answer_content, answer_id, question_title FROM wheelbrother_feed_voteupanswer ORDER BY id"
+    cursor.execute(feed_query)
+    feed_result = cursor.fetchall()
+
+    for item in feed_result:
+        item['answer_content'] = bayes_engine.chinese_filter_separator(item['answer_content'])
+        item_vec = numpy.array(
+            bayes_engine.set_of_word_to_vector(
+                key_word_set_dict['key_word_list'],
+                item['answer_content']
+            )
+        )
+        print item_vec
+        result = bayes_engine.classify_naive_bayes(
+            item_vec,
+            p0v,
+            p1v,
+            pAb
+        )
+
+        if result == 1:
+            print str(item['answer_id'])+' '+str(
+                item['question_title']
+                )+' classified as '+str(1)
 
 def get_my_activities():
     pass
 
 if __name__ == '__main__':
-    pass
+    test_navie_bayes()
