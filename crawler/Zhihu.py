@@ -27,7 +27,10 @@ HEADERS = {
 
 
 class ZhihuClient(object):
-    '''知乎爬虫接口'''
+    '''
+        知乎爬虫接口
+        The Crawler initial method
+    '''
 
     def __init__(self, logger=None):
         # 使用登录cookie信息
@@ -45,7 +48,10 @@ class ZhihuClient(object):
         self.xsrf_token = self.get_xsrf()
 
     def login(self, account, password):
-        """登录知乎"""
+        """
+            登录知乎
+            Logging Zhihu
+        """
         post_url = 'https://www.zhihu.com/login/phone_num'
 
         post_data = {
@@ -56,6 +62,7 @@ class ZhihuClient(object):
         }
 
         # 需要输入验证码后才能登录成功
+        # Need the verification code to loggin
         post_data["captcha"] = self.get_captcha()
         login_page = self.session.post(post_url, data=post_data, headers=HEADERS)
         login_code = login_page.text
@@ -65,7 +72,10 @@ class ZhihuClient(object):
         self.session.cookies.save()
 
     def is_login(self):
-        '''通过查看用户个人信息来判断是否已经登录'''
+        '''
+            通过查看用户个人信息来判断是否已经登录
+            By visiting the profile page to check the logging state
+        '''
         url = "https://www.zhihu.com/settings/profile"
         login_response = self.session.get(
             url,
@@ -79,15 +89,18 @@ class ZhihuClient(object):
         # print 'login_response : '+login_response.text
 
         if login_code == 200:
-            print '已登录 \n'
+            print 'Logging \n'
             return True
         else:
-            print '没有登录 \n'
+            print 'Not Logging yet \n'
             return False
 
 
     def get_captcha(self):
-        ''' 获取验证码'''
+        '''
+            获取验证码
+            Get the verification code
+        '''
         t = str(int(time.time() * 1000))
         captcha_url = 'https://www.zhihu.com/captcha.gif?r=' + t + "&type=login"
         r = self.session.get(captcha_url, headers=HEADERS)
@@ -96,6 +109,7 @@ class ZhihuClient(object):
             f.close()
         # 用pillow 的 Image 显示验证码
         # 如果没有安装 pillow 到源代码所在的目录去找到验证码然后手动输入
+        # Use pillow to show the Image, and if there is no pillow check the image by manual
         try:
             im = Image.open('captcha.jpg')
             im.show()
@@ -110,10 +124,12 @@ class ZhihuClient(object):
         '''_xsrf 是一个动态变化的参数'''
         index_url = 'https://www.zhihu.com'
         # 获取登录时需要用到的_xsrf
+        # when logging it need a token, and the token is needed when do the all activities
         index_page = self.session.get(index_url, headers=HEADERS, verify=False)
         html = index_page.text
         pattern = r'name="_xsrf" value="(.*?)"'
         # 这里的_xsrf 返回的是一个list
+        # the _xsrf is a list
         _xsrf = re.findall(pattern, html)
         return _xsrf[0]
 
@@ -144,6 +160,7 @@ class ZhihuClient(object):
             解析赞同回答的内容
         '''
         #回答者的用户信息
+        #Informaton of user who answer the question
         author_link_top = activity.find_all('span', class_='summary-wrapper')
         try:
             author_link = author_link_top[0].find('a', class_='author-link')
@@ -151,12 +168,16 @@ class ZhihuClient(object):
             username = author_link.get_text()
         except:
             '''
-            可能会造成的异常为Nonetype, 和IndexError，还不知道为什么会出现有的答案的html结构会不一样
+                可能会造成的异常为Nonetype, 和IndexError，还不知道为什么会出现有的答案的html结构会不一样
+
+                May cause the Nonetype error and IndexError, still don't kwow why
+                sometime the structrue of the html is different
             '''
             user_link = ZHIHU_URL
             username = 'anonymous'
 
         #答案的信息
+        #Information of Answer
         answer_div = activity.find_all('div', class_='zm-item-answer ')
         answer_id = answer_div[0].get('data-atoken')
         answer_data_time = answer_div[0].get('data-created')
@@ -167,6 +188,7 @@ class ZhihuClient(object):
                                                ' js-openVoteDialog').find('span').string
 
         #问题的信息
+        #Information of Question
         question_link_a = activity.find_all('a', class_='question_link')
         question_link = question_link_a[0]['href']
         pattern = r'(?<=question/).*?(?=/answer)'
@@ -188,13 +210,17 @@ class ZhihuClient(object):
     def get_comment(self, answer_comment_id):
         '''
             获取赞同回答的评论
+            Get the activities comment
         '''
         current_page = 1
         #获取评论url
+        #get comment url
         MORE_COMMENT_URL = ZHIHU_URL + '/r/answers/'+answer_comment_id+'/comments?page='
 
         try:
             #只获取一页的评论,同时赞数最多的评论就在第一页
+            #only need to get the first page's commments,
+            #because the popular comment at the first page
             comments = self.session.get(
                 MORE_COMMENT_URL+str(current_page),
                 headers=HEADERS,
@@ -227,6 +253,7 @@ class ZhihuClient(object):
     def get_follow_question(self, activity):
         '''
             解析关注问题的信息
+            Parse the activities which user followed
         '''
         question_link = activity.find('a', class_='question_link').get('href')
         question_id = re.findall(r"(?<=/question/).*", question_link)[0]
@@ -243,6 +270,7 @@ class ZhihuClient(object):
     def get_member_answer_question(self, activity):
         '''
             解析回答问题的信息
+            Parse the activities which user answered
         '''
         question_link = activity.find('a', class_='question_link').get('href')
         question_id = re.findall(r'(?<=question/).*?(?=/answer)', question_link)[0]
@@ -266,6 +294,7 @@ class ZhihuClient(object):
     def get_member_voteup_article(self, activity):
         '''
             解析赞同文章的信息
+            Parse the activities which user voteup
         '''
         try:
             user_link = activity.find(
@@ -299,6 +328,7 @@ class ZhihuClient(object):
     def get_collection_activites(self, collection_id, page_num):
         '''
             获取收藏夹的内容
+            Crawl the collection activities
         '''
         collection_url = ZHIHU_URL + '/collection/'+str(collection_id)+'/?page='+str(page_num)
         response = self.session.get(
@@ -312,6 +342,7 @@ class ZhihuClient(object):
     def parse_collection_activites_content(self, content):
         '''
             解析收藏夹的内容
+            Parse the collection activities
         '''
         activities_result_set = list()
         activites = content.find_all('div', class_='zm-item')
@@ -362,6 +393,7 @@ class ZhihuClient(object):
         }
 
         #主要是使用桌面的User-Agent来获取关注人会方便很多
+        #Because of the Zhihu API, Use PC User-Agent could be more convinience
         HEADERS['User-Agent'] = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3)'+
                                  ' AppleWebKit/537.36 (KHTML, like Gecko)'+
                                  ' Chrome/56.0.2924.87 Safari/537.36')
@@ -379,9 +411,10 @@ class ZhihuClient(object):
 
     def follow_member(self, username):
         '''
-            关注用户
+            follow user
         '''
         #主要是使用桌面的User-Agent来获取关注人会方便很多
+        #Because of the Zhihu API, Use PC User-Agent could be more convinience
         HEADERS['User-Agent'] = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3)'+
                                  ' AppleWebKit/537.36 (KHTML, like Gecko)'+
                                  ' Chrome/56.0.2924.87 Safari/537.36')
@@ -398,11 +431,11 @@ class ZhihuClient(object):
 
     def get_my_activities(self, start, offset):
         '''
-            获取自己主页的feed
+            get my own main page's feed
 
-            start: 从主页feed中第几个开始往后获取动态
+            start: from which feed's num start to crawl
 
-            offset: 从start后获取动态的数量
+            offset: the number of the feed that you want to get at one time
         '''
 
         feed_url = 'https://www.zhihu.com/node/TopStory2FeedList'

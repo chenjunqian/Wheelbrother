@@ -16,8 +16,13 @@ sys.setdefaultencoding('utf-8')
 def test_navie_bayes():
     bayes_engine = naive_bayesian()
     zhi_hu_crawler = zhihu_crawler()
+
+    '''
+        the training data had been build, this just a tool code
+    '''
     # test_training_data.get_high_frequency_word()
     # test_training_data.build_data_set()
+
     train_set_dict = dict()
     key_word_set_dict = dict()
     vector_set = list()
@@ -41,7 +46,7 @@ def test_navie_bayes():
     )
 
     connection = MySQLdb.connect(
-        host='118.190.103.54',
+        host='localhost',
         user='root',
         passwd='root',
         db='mysite',
@@ -70,6 +75,9 @@ def test_navie_bayes():
         )
 
         if result == 1:
+            '''
+                if the result is 1, so the result is the target result then voteup this answer
+            '''
             zhi_hu_crawler.voteup_activities(zhi_hu_crawler.zhihu_client, item['answer_id'])
             print str(item['answer_id'])+' '+str(
                 item['question_title']

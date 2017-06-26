@@ -36,7 +36,7 @@ class naive_bayesian(object):
 
     def chinese_filter_separator(self, string):
         '''
-            过滤掉非中文的文字
+            filter all the non-Chinese words
         '''
         chinese_word_string = list()
         for word in string:
@@ -107,7 +107,7 @@ class naive_bayesian(object):
 
     def build_data_set(self):
         '''
-            load data from database, split words and buil training set
+            load data from database, split words and buil training set and save as json file
         '''
         activitiy_query = "SELECT answer_content FROM wheelbrother_voteupanswer"
         self.cursor.execute(activitiy_query)

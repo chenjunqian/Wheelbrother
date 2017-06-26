@@ -54,6 +54,7 @@ class zhihu_crawler:
     def run(self, zhihu_client):
         '''
             统一请求函数格式
+            All the test or other method should call in this function
         '''
         # self.crawl_activities(zhihu_client)
         self.crawl_my_feed(zhihu_client)
@@ -61,9 +62,14 @@ class zhihu_crawler:
 
         #####爬取用户动态#######
     def crawl_activities(self, zhihu_client):
-        """爬取用户动态"""
+        """
+            爬取用户动态
+            Get the activities of the user's home page
+        """
         limit = 20
-        start = 1473035448 #获取动态的时间戳 0 则是从现在开始获取
+        #获取动态的时间戳 0 则是从现在开始获取
+        #It starts from the begging when timestamp is 0
+        start = 1473035448
 
         crawl_times = 0
         response = []
@@ -128,13 +134,18 @@ class zhihu_crawler:
 
 
     def parse_activitis(self, zhihu_client, activity):
-        '''根据不同的标签来判断用户动态的类型'''
+        '''
+            根据不同的标签来判断用户动态的类型
+            Base on the data type in the HTML file to parse the difference activities
+        '''
         if activity.attrs['data-type-detail'] == 'member_voteup_answer':
             #赞同了回答
+            #The type of the activities is voteup answer
             question_content = zhihu_client.get_voteup_answer_content(activity)
 
             try:
                 #判断是否在数据库中已经存在
+                #To check whether the activities is already store in the database
                 check_query = "SELECT * FROM wheelbrother_voteupanswer WHERE answer_id=%s"
                 self.cursor.execute(check_query, [question_content['answer_id']])
                 check_model = self.cursor.fetchall()
@@ -190,6 +201,7 @@ class zhihu_crawler:
 
         if activity.attrs['data-type-detail'] == 'member_follow_question':
             #关注了问题
+            #The type of the activities is follow a question
             follow_question_content = zhihu_client.get_follow_question(activity)
 
             query_value = [
@@ -220,9 +232,11 @@ class zhihu_crawler:
 
         if activity.attrs['data-type-detail'] == 'member_answer_question':
             #回答了问题
+            #The type of the activities is answer a question
             answer_question_content = zhihu_client.get_member_answer_question(activity)
             try:
                 #判断是否在数据库中已经存在
+                #To check whether the activities is already store in the database
                 check_query = "SELECT * FROM wheelbrother_answerquestion WHERE answer_id=%s"
                 self.cursor.execute(check_query, [answer_question_content['answer_id']])
                 check_model = self.cursor.fetchall()
@@ -277,14 +291,17 @@ class zhihu_crawler:
 
         if activity.attrs['data-type-detail'] == 'member_follow_column':
             #关注了专栏
+            #The type of the activities is follow a column
             zhihu_client.logger.info('\n关注了专栏 \n')
 
         if activity.attrs['data-type-detail'] == 'member_voteup_article':
             #赞同了文章
+            #The type of the activities is voteup a article
             voteup_article_content = zhihu_client.get_member_voteup_article(activity)
 
             try:
                 #判断是否在数据库中已经存在
+                #To check whether the activities is already store in the database
                 check_query = "SELECT * FROM wheelbrother_voteuparticle WHERE article_url_token=%s"
                 self.cursor.execute(check_query, [voteup_article_content['article_url_token']])
                 check_model = self.cursor.fetchall()
@@ -336,16 +353,19 @@ class zhihu_crawler:
 
         if activity.attrs['data-type-detail'] == 'member_create_article':
             #发布了文章
+            #The type of the activities is created a article
             self.logger.info('\n发布了文章 \n')
 
 
     def parse_comment_result(self, comment):
         '''
             解析赞同回答的评论
+            Tp Parse the comment of the voteup answer
         '''
 
         try:
             #判断是否在数据库中已经存在
+            #To check whether the activities is already store in the database
             check_query = "SELECT * FROM wheelbrother_voteupcomment WHERE comment_id=%s"
             self.cursor.execute(check_query, [comment['id']])
             check_model = self.cursor.fetchall()
@@ -358,6 +378,7 @@ class zhihu_crawler:
 
         try:
             #有匿名的情况
+            #when the comment is post by a anonymous user
             user_link = comment['author']['url']
             username = comment['author']['name']
         except:
@@ -397,7 +418,10 @@ class zhihu_crawler:
         return query_value
 
     def crawl_collection(self, zhihu_client):
-        '''爬取收藏夹内容'''
+        '''
+            爬取收藏夹内容
+            Clawl the content all the collection
+        '''
 
         activities_result_set = list()
         crawl_times = 0
@@ -430,6 +454,7 @@ class zhihu_crawler:
                 is_store_in_database = False
                 try:
                     #判断是否在数据库中已经存在
+                    #To check whether the activities is already store in the database
                     check_query = "SELECT * FROM wheelbrother_collectionanswer WHERE answer_id=%s"
                     self.cursor.execute(check_query, [collection_activity['answer_id']])
                     check_model = self.cursor.fetchall()
@@ -499,6 +524,7 @@ class zhihu_crawler:
     def crawl_followees(self, zhihu_client):
         '''
             爬取关注列表
+            To get the user's follwees list
         '''
 
         followees_result_set = list()
@@ -562,6 +588,7 @@ class zhihu_crawler:
     def crawl_my_feed(self, zhihu_client):
         '''
             爬取主页动态
+            To get user's own feed of the main page
         '''
         crawl_times = 0
         start = 0
@@ -597,6 +624,7 @@ class zhihu_crawler:
 
             if start >= 1000:
                 #当爬取1000条数据后，从新开始爬
+                #When get more than 1000 data, then start over
                 break
 
             if crawl_times == 10:
