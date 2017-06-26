@@ -182,6 +182,9 @@ class naive_bayesian(object):
         return posibility_zero_vector, posibility_one_vector, posibility_of_target
 
     def classify_naive_bayes(self, vec_of_classify, p_zero_vector, p_one_vector, p_of_target):
+        '''
+            classify data, if the data is the target data return 1
+        '''
         p_one = numpy.sum(vec_of_classify*p_one_vector) + numpy.log10(p_of_target)
         p_zero = numpy.sum(vec_of_classify*p_zero_vector) + numpy.log10(1.0 - p_of_target)
         # print 'p_one :'+str(p_one)+'  p_zero'+str(p_zero)

@@ -439,3 +439,24 @@ class ZhihuClient(object):
         )
 
         return response.text
+
+    def vote_up_answer(self, answer_id):
+        '''
+            voteup activities
+        '''
+        request_url = 'https://www.zhihu.com/node/AnswerVoteInfoV2'
+        HEADERS['Xsrftoken'] = self.xsrf_token
+
+        get_data = {
+            'params':{
+                'answer_id':answer_id
+            }
+        }
+
+        response = self.session.get(
+            request_url,
+            headers=HEADERS,
+            params=get_data
+        )
+
+        return response.text

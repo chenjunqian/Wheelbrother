@@ -1,7 +1,7 @@
 #coding=utf-8
 
 from bayes import naive_bayesian
-from crawler import Zhihu
+from crawler.crawler import zhihu_crawler
 import logging
 import pickle
 import json
@@ -15,6 +15,7 @@ sys.setdefaultencoding('utf-8')
 
 def test_navie_bayes():
     bayes_engine = naive_bayesian()
+    zhi_hu_crawler = zhihu_crawler()
     # test_training_data.get_high_frequency_word()
     # test_training_data.build_data_set()
     train_set_dict = dict()
@@ -69,6 +70,7 @@ def test_navie_bayes():
         )
 
         if result == 1:
+            zhi_hu_crawler.voteup_activities(zhi_hu_crawler.zhihu_client, item['answer_id'])
             print str(item['answer_id'])+' '+str(
                 item['question_title']
                 )+' classified as '+str(1)

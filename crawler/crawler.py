@@ -32,7 +32,7 @@ class zhihu_crawler:
             charset="utf8"
         )
         self.cursor = self.connection.cursor()
-
+        self.zhihu_client = Zhihu.ZhihuClient(self.logger)
         # self.process_pool = Pool(processes=3)
 
 
@@ -42,15 +42,14 @@ class zhihu_crawler:
         except:
             pass
 
-        zhihu_client = Zhihu.ZhihuClient(self.logger)
-        if zhihu_client.is_login():
-            self.run(zhihu_client)
+        if self.zhihu_client.is_login():
+            self.run(self.zhihu_client)
         else:
             account = input('输入账号 \n > ')
             password = getpass("请输入登录密码: ")
-            zhihu_client.login(account, password)
-            if zhihu_client.is_login():
-                self.run(zhihu_client)
+            self.zhihu_client.login(account, password)
+            if self.zhihu_client.is_login():
+                self.run(self.zhihu_client)
 
     def run(self, zhihu_client):
         '''
@@ -58,6 +57,7 @@ class zhihu_crawler:
         '''
         # self.crawl_activities(zhihu_client)
         self.crawl_my_feed(zhihu_client)
+        self.voteup_activities(zhihu_client, '64245225')
 
         #####爬取用户动态#######
     def crawl_activities(self, zhihu_client):
@@ -791,6 +791,10 @@ class zhihu_crawler:
             pass
         if data_meta['source_type'] == 'member_create_article':
             pass
+
+    def voteup_activities(self, zhihu_client, answer_id):
+        response = zhihu_client.vote_up_answer(answer_id)
+        print response
 
 if __name__ == "__main__":
     my_zhihu_crawler = zhihu_crawler()
