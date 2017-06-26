@@ -1,6 +1,6 @@
 # Wheelbrother
 
-## 主要思路
+### 主要思路
 
 Wheelbrothe是基于朴素贝叶斯算法来模拟知乎[轮子哥](https://www.zhihu.com/people/excited-vczh/answers)的轮带逛。
 通过爬取轮子哥主页的动态和[轮子哥带你逛知乎](https://www.zhihu.com/collection/61913303)的收藏夹的动态作为数据集进行算法处理。
