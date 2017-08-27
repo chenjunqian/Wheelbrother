@@ -36,8 +36,7 @@ def test_navie_bayes():
         vector_set.append(
             bayes_engine.set_of_word_to_vector(
                 key_word_set_dict['key_word_list'],
-                item,
-                True
+                item
             )
         )
     p0v, p1v, pAb = bayes_engine.train_naive_bayes(
@@ -46,7 +45,7 @@ def test_navie_bayes():
     )
 
     connection = MySQLdb.connect(
-        host='localhost',
+        host='118.190.103.54',
         user='root',
         passwd='root',
         db='mysite',
@@ -66,7 +65,11 @@ def test_navie_bayes():
                 item['answer_content']
             )
         )
+        print ''.join(item['question_title']).encode('utf-8').strip()
         print item_vec
+        print 'p0v'+str(p0v)
+        print 'p1v'+str(p1v)
+        print 'pAb'+str(pAb)
         result = bayes_engine.classify_naive_bayes(
             item_vec,
             p0v,
@@ -78,10 +81,12 @@ def test_navie_bayes():
             '''
                 if the result is 1, so the result is the target result then voteup this answer
             '''
-            zhi_hu_crawler.voteup_activities(zhi_hu_crawler.zhihu_client, item['answer_id'])
+            # zhi_hu_crawler.voteup_activities(zhi_hu_crawler.zhihu_client, item['answer_id'])
             print str(item['answer_id'])+' '+str(
                 item['question_title']
                 )+' classified as '+str(1)
+        else:
+            print 'It is not target'
 
 def get_my_activities():
     pass

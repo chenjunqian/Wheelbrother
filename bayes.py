@@ -86,7 +86,7 @@ class naive_bayesian(object):
             json.dump(json_dict, outfile, ensure_ascii=False, indent=4)
 
 
-    def set_of_word_to_vector(self, vocab_list, input_set, is_test_data=False):
+    def set_of_word_to_vector(self, vocab_list, input_set):
         '''
             Create a vector which all the element are 0,
             and change the element to one which contain high frequency word
@@ -187,7 +187,7 @@ class naive_bayesian(object):
         '''
         p_one = numpy.sum(vec_of_classify*p_one_vector) + numpy.log10(p_of_target)
         p_zero = numpy.sum(vec_of_classify*p_zero_vector) + numpy.log10(1.0 - p_of_target)
-        # print 'p_one :'+str(p_one)+'  p_zero'+str(p_zero)
+        print 'p_one :'+str(p_one)+'  p_zero'+str(p_zero)
         if p_one > p_zero:
             return 1
         else:

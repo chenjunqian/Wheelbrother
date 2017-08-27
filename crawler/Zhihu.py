@@ -133,6 +133,11 @@ class ZhihuClient(object):
         _xsrf = re.findall(pattern, html)
         return _xsrf[0]
 
+    def get_proxy(self):
+        ip_dict_json = dict()
+        with open('ip_proxy.json', 'r') as json_file:
+            ip_dict_json = json.load(json_file)
+        return ip_dict_json['ip_proxy']
 
     def get_more_activities(self, limit, start):
         '''
