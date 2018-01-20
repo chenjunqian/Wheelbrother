@@ -15,7 +15,7 @@ class naive_bayesian(object):
 
     def __init__(self):
         self.connection = MySQLdb.connect(
-            host='localhost',
+            host='118.190.103.54',
             port=3306,
             user='root',
             passwd='root',

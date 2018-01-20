@@ -20,27 +20,37 @@ get_proxys_url = 'http://www.kuaidaili.com/free/intr/'
 pages = 1
 ip_list = list()
 
-while True:
-    response = requests.get(get_proxys_url+str(pages)+'/', headers=HEADERS)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    pages = pages + 1
+# while True:
+#     response = requests.get(get_proxys_url+str(pages)+'/', headers=HEADERS)
+#     soup = BeautifulSoup(response.text, 'html.parser')
+#     pages = pages + 1
 
-    items = soup.find('tbody').find_all('tr')
-    ip_dict = dict()
+#     items = soup.find('tbody').find_all('tr')
+#     ip_dict = dict()
 
-    for item in items:
-        item_detail = item.find_all('td')
-        ip_dict['ip'] = item_detail[0].string
-        ip_dict['port'] = item_detail[1].string
-        ip_list.append(ip_dict)
-        print ip_dict
+#     for item in items:
+#         item_detail = item.find_all('td')
+#         ip_dict['ip'] = item_detail[0].string
+#         ip_dict['port'] = item_detail[1].string
+#         ip_list.append(ip_dict)
+#         print ip_dict
     
-    time.sleep(3)
-    if pages >= 50:
-        break
+#     time.sleep(3)
+#     if pages >= 50:
+#         break
 
-with open('ip_proxy.json', 'w') as out_file:
-    json_dict = dict()
-    json_dict['ip_proxy'] = ip_list
-    json.dump(json_dict, out_file, ensure_ascii=False, indent=4)
-    print 'build data set done !'
+# with open('ip_proxy.json', 'w') as out_file:
+#     json_dict = dict()
+#     json_dict['ip_proxy'] = ip_list
+#     json.dump(json_dict, out_file, ensure_ascii=False, indent=4)
+#     print 'build data set done !'
+ip_dict_json = dict()
+with open('ip_proxy.json', 'r') as json_file:
+    ip_dict_json = json.load(json_file)
+
+while True:
+    ip_dict = random.choice(ip_dict_json['ip_proxy'])
+    ip_proxy = 'http:\\'+str(ip_dict['ip'])+':'+str(ip_dict['port'])
+    response = requests.get('https://www.google.de/', proxies=ip_proxy)
+    print ip_proxy
+    print response

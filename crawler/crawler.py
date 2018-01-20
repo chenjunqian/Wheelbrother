@@ -25,7 +25,7 @@ class zhihu_crawler:
         self.logger.addHandler(handle)
 
         self.connection = MySQLdb.connect(
-            host='localhost',
+            host='118.190.103.54',
             user='root',
             passwd='root',
             db='mysite',
@@ -58,7 +58,7 @@ class zhihu_crawler:
         '''
         # self.crawl_activities(zhihu_client)
         self.crawl_my_feed(zhihu_client)
-        self.voteup_activities(zhihu_client, '64245225')
+        # self.voteup_activities(zhihu_client, '64245225')
 
         #####爬取用户动态#######
     def crawl_activities(self, zhihu_client):
@@ -106,20 +106,20 @@ class zhihu_crawler:
             for activity in activities:
                 self.parse_activitis(zhihu_client, activity)
 
-            crawl_times = crawl_times + 1
-            if crawl_times == 10:
-                self.logger.info('crawl activities 10 times, sleep 60s...')
-                time.sleep(60)
-            elif crawl_times == 20:
-                self.logger.info('crawl activities 20 times, sleep 80s...')
-                time.sleep(80)
-            elif crawl_times == 30:
-                self.logger.info('crawl activities 30 times, sleep 1200s...')
-                crawl_times = 0
-                time.sleep(1200)
-            else:
-                self.logger.info('crawl activities, waiting for 20s...')
-                time.sleep(20)
+            # crawl_times = crawl_times + 1
+            # if crawl_times == 10:
+            #     self.logger.info('crawl activities 10 times, sleep 60s...')
+            #     time.sleep(60)
+            # elif crawl_times == 20:
+            #     self.logger.info('crawl activities 20 times, sleep 80s...')
+            #     time.sleep(80)
+            # elif crawl_times == 30:
+            #     self.logger.info('crawl activities 30 times, sleep 1200s...')
+            #     crawl_times = 0
+            #     time.sleep(1200)
+            # else:
+            #     self.logger.info('crawl activities, waiting for 20s...')
+            #     time.sleep(20)
 
         def parse_response(response):
             limit = json_response['msg'][0]
@@ -505,20 +505,20 @@ class zhihu_crawler:
                                  collection_activity['answer_title']+' \n'+
                                  'answer_id : '+str(collection_activity['answer_id']))
 
-            crawl_times = crawl_times + 1
-            if crawl_times == 10:
-                self.logger.info('crawl collection activities 10 times, sleep 60s...')
-                time.sleep(60)
-            elif crawl_times == 20:
-                self.logger.info('crawl collection activities 20 times, sleep 80s...')
-                time.sleep(80)
-            elif crawl_times == 30:
-                self.logger.info('crawl collection activities 30 times, sleep 1200s...')
-                crawl_times = 0
-                time.sleep(1200)
-            else:
-                self.logger.info('crawl collection activities, waiting for 20s...')
-                time.sleep(20)
+            # crawl_times = crawl_times + 1
+            # if crawl_times == 10:
+            #     self.logger.info('crawl collection activities 10 times, sleep 60s...')
+            #     time.sleep(60)
+            # elif crawl_times == 20:
+            #     self.logger.info('crawl collection activities 20 times, sleep 80s...')
+            #     time.sleep(80)
+            # elif crawl_times == 30:
+            #     self.logger.info('crawl collection activities 30 times, sleep 1200s...')
+            #     crawl_times = 0
+            #     time.sleep(1200)
+            # else:
+            #     self.logger.info('crawl collection activities, waiting for 20s...')
+            #     time.sleep(20)
 
 
     def crawl_followees(self, zhihu_client):
@@ -569,20 +569,20 @@ class zhihu_crawler:
                 else:
                     self.logger.info('name '+''.join(followees['name']).encode('utf-8')+' 已关注')
 
-            crawl_times = crawl_times + 1
-            if crawl_times == 10:
-                self.logger.info('crawl followees 10 times, sleep 60s...')
-                time.sleep(60)
-            elif crawl_times == 20:
-                self.logger.info('crawl followees 20 times, sleep 80s...')
-                time.sleep(80)
-            elif crawl_times == 30:
-                self.logger.info('crawl followees 30 times, sleep 1200s...')
-                crawl_times = 0
-                time.sleep(1200)
-            else:
-                self.logger.info('crawl followees activities, waiting for 20s...')
-                time.sleep(20)
+            # crawl_times = crawl_times + 1
+            # if crawl_times == 10:
+            #     self.logger.info('crawl followees 10 times, sleep 60s...')
+            #     time.sleep(60)
+            # elif crawl_times == 20:
+            #     self.logger.info('crawl followees 20 times, sleep 80s...')
+            #     time.sleep(80)
+            # elif crawl_times == 30:
+            #     self.logger.info('crawl followees 30 times, sleep 1200s...')
+            #     crawl_times = 0
+            #     time.sleep(1200)
+            # else:
+            #     self.logger.info('crawl followees activities, waiting for 20s...')
+            #     time.sleep(20)
 
 
     def crawl_my_feed(self, zhihu_client):
@@ -627,19 +627,19 @@ class zhihu_crawler:
                 #When get more than 1000 data, then start over
                 break
 
-            if crawl_times == 10:
-                self.logger.info('crawl feed 10 times, sleep 60s...')
-                time.sleep(60)
-            elif crawl_times == 20:
-                self.logger.info('crawl feed 20 times, sleep 80s...')
-                time.sleep(80)
-            elif crawl_times == 30:
-                self.logger.info('crawl feed 30 times, sleep 1200s...')
-                crawl_times = 0
-                time.sleep(1200)
-            else:
-                self.logger.info('crawl feed activities, waiting for 20s...')
-                time.sleep(20)
+            # if crawl_times == 10:
+            #     self.logger.info('crawl feed 10 times, sleep 60s...')
+            #     time.sleep(60)
+            # elif crawl_times == 20:
+            #     self.logger.info('crawl feed 20 times, sleep 80s...')
+            #     time.sleep(80)
+            # elif crawl_times == 30:
+            #     self.logger.info('crawl feed 30 times, sleep 1200s...')
+            #     crawl_times = 0
+            #     time.sleep(1200)
+            # else:
+            #     self.logger.info('crawl feed activities, waiting for 20s...')
+            #     time.sleep(20)
 
     def parse_feed_activiteis(self, zhihu_client, activiteis):
         '''根据不同的标签来判断feed动态的类型'''
@@ -828,4 +828,4 @@ if __name__ == "__main__":
     my_zhihu_crawler = zhihu_crawler()
     while True:
         my_zhihu_crawler.main()
-        time.sleep(1800)
+        # time.sleep(1800)

@@ -2,6 +2,7 @@
 """ zhihu website crawler API """
 import re
 import time
+import random
 import json
 import os
 import requests
@@ -46,6 +47,8 @@ class ZhihuClient(object):
 
         #知乎改版后，POST请求需要加X-Xsrftoken，不然会出现403
         self.xsrf_token = self.get_xsrf()
+
+        self.ip_proxy_list = self.get_proxy()
 
     def login(self, account, password):
         """
@@ -139,6 +142,11 @@ class ZhihuClient(object):
             ip_dict_json = json.load(json_file)
         return ip_dict_json['ip_proxy']
 
+    def get_random_proxy(self):
+        ip_dict = random.choice(self.ip_proxy_list)
+        ip_proxy = 'http:\\'+str(ip_dict['ip'])+':'+str(ip_dict['port'])
+        return ip_proxy
+
     def get_more_activities(self, limit, start):
         '''
             获取更多的用户动态
@@ -155,7 +163,8 @@ class ZhihuClient(object):
             api_url,
             params=query_data,
             headers=HEADERS,
-            verify=False
+            verify=False,
+            proxies=self.get_random_proxy()
         )
 
         return response.text
@@ -229,7 +238,8 @@ class ZhihuClient(object):
             comments = self.session.get(
                 MORE_COMMENT_URL+str(current_page),
                 headers=HEADERS,
-                verify=False
+                verify=False,
+                proxies=self.get_random_proxy()
                 )
         except requests.exceptions.ConnectionError:
             if self.logger:
@@ -339,7 +349,8 @@ class ZhihuClient(object):
         response = self.session.get(
             collection_url,
             headers=HEADERS,
-            verify=False
+            verify=False,
+            proxies=self.get_random_proxy()
         )
 
         return response.text
@@ -408,7 +419,8 @@ class ZhihuClient(object):
         response = self.session.get(
             url,
             headers=HEADERS,
-            params=get_data
+            params=get_data,
+            proxies=self.get_random_proxy()
         )
 
         return response.text
@@ -428,7 +440,8 @@ class ZhihuClient(object):
         response = self.session.post(
             follow_url,
             headers=HEADERS,
-            verify=False
+            verify=False,
+            proxies=self.get_random_proxy()
         )
 
         print response.text
@@ -474,6 +487,7 @@ class ZhihuClient(object):
             feed_url,
             data=post_data,
             headers=headers,
+            proxies=self.get_random_proxy()
         )
 
         return response.text
@@ -494,7 +508,8 @@ class ZhihuClient(object):
         response = self.session.get(
             request_url,
             headers=HEADERS,
-            params=get_data
+            params=get_data,
+            proxies=self.get_random_proxy()
         )
 
         return response.text
